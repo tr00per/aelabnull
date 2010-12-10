@@ -21,8 +21,8 @@ class Bezier:
         self.__p3 = np.array( (width, 0) )
 
         if p1p2 is None:
-            self.__p1 = np.array( [2 * r.random() * width - width, 2 * r.random() * height - height] )
-            self.__p2 = np.array( [2 * r.random() * width - width, 2 * r.random() * height - height] )
+            self.__p1 = np.array( [r.random() * width, 2 * r.random() * height - height] )
+            self.__p2 = np.array( [r.random() * width, 2 * r.random() * height - height] )
         else:
             self.__p1 = np.array(p1p2[0])
             self.__p2 = np.array(p1p2[1])
@@ -58,30 +58,34 @@ class Bezier:
         return (1-x)**3 * self.__p0 + 3 * ((1-x)**2) * x * self.__p1 \
             + 3 * (1-x) * (x**2) * self.__p2 + (x**3) * self.__p3
 
-    def time(self, g = 9.81):
-        """t = l / sqrt(2 * g * h)"""
-        sqrt2g = 1.0 / np.sqrt(2 * g)
-        ret = 0.0
+    def time(self):
+        """ inclined plane: a = g * sin(alpha)
+        or a = g * (h/l)
+
+        We ignore the g in the calculations to simplify stuff. """
+
+        t = 0.0 # time
+        v = 0.0 # speed
+
         oldX = 0.0
         for X in np.arange(0.02, 1.02, 0.02):
-            v1 = self.__at(oldX)
-            v2 = self.__at(X)
-            #print v1, v2,
+            x1 = self.__at(oldX)
+            x2 = self.__at(X)
 
-            v = v2 - v1
-            #print v, '<', v[0] / v[1], '>',
-            l = np.sqrt( (v ** 2).sum() ) # length
-            h = 0 #height
-            #print dot(v)
-            if True: #abs(dot(v)) > 0.5:
-                h = np.abs(v[1])
-            else:
-                h = np.abs(v[0])
+            dx = x2 - x1
+            l = np.sqrt( np.vdot(dx, dx) ) # length
+            h = - dx[1] #height
 
-            ret += l * sqrt2g / np.sqrt( h )
+            a = (h/l)
+            v += a # speed can increase or decrease here
+            if v <= 0:
+                # we have stopped
+                return np.inf
+            t += l / v
+
             oldX = X
 
-        return ret
+        return t
 
     def show(self):
         verts = [self.__p0, self.__p1, self.__p2, self.__p3]
@@ -104,6 +108,7 @@ class Bezier:
         ax.set_xlim(-self.__p3[0], 1.5*self.__p3[0])
         ax.set_ylim(-self.__p0[1], 1.5*self.__p0[1])
         plt.show()
+        #fig.canvas.draw()
 
 class Population:
     def __init__(self, N, height, width):
