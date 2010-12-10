@@ -6,6 +6,7 @@ import numpy as np
 import math as m
 import random as rand
 import matplotlib.pyplot as plot
+import getopt as go
 
 class Bezier:
     def __init__(self, height, width):
@@ -30,5 +31,12 @@ class Bezier:
         pass
 
 if __name__ == "__main__":
-    b = Bezier(5, 10)
+    N = 30
+    opts, args = go.getopt(sys.args[1:], "N:")
+    for opt, arg in opts:
+        if opt == "-N":
+            N = int(arg)
+
+    population = []
+
     print "Hello world!"
