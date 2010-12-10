@@ -10,6 +10,10 @@ from matplotlib.path import Path
 import matplotlib.patches as patches
 import getopt as go
 
+def dot(two):
+    """Computes dot product of [1, 0] and <two>."""
+    return two[1] / np.sqrt( (two**2).sum() )
+
 class Bezier:
     def __init__(self, height, width, p1p2=None):
         self.adaptation = 0.0
@@ -50,7 +54,7 @@ class Bezier:
         return (self.__p0, self.__p1, self.__p2, self.__p3)
 
     def __at(self, x):
-        """x = [0, 1]"""
+        """x = [0, 1]; from Wikipedia"""
         return (1-x)**3 * self.__p0 + 3 * ((1-x)**2) * x * self.__p1 \
             + 3 * (1-x) * (x**2) * self.__p2 + (x**3) * self.__p3
 
@@ -59,15 +63,22 @@ class Bezier:
         sqrt2g = 1.0 / np.sqrt(2 * g)
         ret = 0.0
         oldX = 0.0
-        for X in np.arange(0.01, 1, 0.01):
+        for X in np.arange(0.02, 1.02, 0.02):
             v1 = self.__at(oldX)
             v2 = self.__at(X)
+            #print v1, v2,
 
             v = v2 - v1
+            #print v, '<', v[0] / v[1], '>',
             l = np.sqrt( (v ** 2).sum() ) # length
-            h = np.abs(v[1]) #height
+            h = 0 #height
+            #print dot(v)
+            if True: #abs(dot(v)) > 0.5:
+                h = np.abs(v[1])
+            else:
+                h = np.abs(v[0])
 
-            ret += l * sqrt2g / np.sqrt(h)
+            ret += l * sqrt2g / np.sqrt( h )
             oldX = X
 
         return ret
