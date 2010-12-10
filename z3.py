@@ -5,7 +5,9 @@ import sys
 import numpy as np
 import math as m
 import random as r
-import matplotlib.pyplot as plot
+import matplotlib.pyplot as plt
+from matplotlib.path import Path
+import matplotlib.patches as patches
 import getopt as go
 
 class Bezier:
@@ -57,18 +59,40 @@ class Bezier:
         sqrt2g = 1.0 / np.sqrt(2 * g)
         ret = 0.0
         oldX = 0.0
-        for X in np.arange(0.05, 1, 0.05):
+        for X in np.arange(0.01, 1, 0.01):
             v1 = self.__at(oldX)
             v2 = self.__at(X)
 
             v = v2 - v1
             l = np.sqrt( (v ** 2).sum() ) # length
-            h = np.abs(v1[1] - v2[1]) #height
+            h = np.abs(v[1]) #height
 
             ret += l * sqrt2g / np.sqrt(h)
             oldX = X
 
         return ret
+
+    def show(self):
+        verts = [self.__p0, self.__p1, self.__p2, self.__p3]
+        codes = [Path.MOVETO, Path.CURVE4, Path.CURVE4, Path.CURVE4]
+        path = Path(verts, codes)
+
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        patch = patches.PathPatch(path, facecolor='none', lw=2)
+        ax.add_patch(patch)
+
+        xs, ys = zip(*verts)
+        ax.plot(xs, ys, 'x--', lw=2, color='black', ms=10)
+
+        ax.text(self.__p0[0]+0.05, self.__p0[1]+0.05, 'P0')
+        ax.text(self.__p1[0]+0.05, self.__p1[1]+0.05, 'P1')
+        ax.text(self.__p2[0]+0.05, self.__p2[1]+0.05, 'P2')
+        ax.text(self.__p3[0]+0.05, self.__p3[1]+0.05, 'P3')
+
+        ax.set_xlim(-self.__p3[0], 1.5*self.__p3[0])
+        ax.set_ylim(-self.__p0[1], 1.5*self.__p0[1])
+        plt.show()
 
 class Population:
     def __init__(self, N, height, width):
@@ -77,12 +101,12 @@ class Population:
         self.__width = width
 
         self.__pop = [ Bezier(self.__height, self.__width) for i in range(self.__N) ]
-        self.__calcAdaptations()
+        self.__calcAdaptations(self.__pop)
         self.__pop.sort(key = lambda bez: bez.adaptation)
 
-    def __calcAdaptations(self):
+    def __calcAdaptations(self, target):
         for index in range(self.__N):
-            self.__pop[index].adaptation = self.__pop[index].time()
+            target[index].adaptation = target[index].time()
 
     def nextEpoch(self, mutationChance, mateChance):
         newPop = []
@@ -104,19 +128,23 @@ class Population:
             self.__pop.sort(key = lambda bez: bez.adaptation)
 
         self.__pop = newPop[:self.__N]
-        self.__calcAdaptations()
+        self.__calcAdaptations(self.__pop)
+        self.__pop.sort(key = lambda bez: bez.adaptation)
 
-        return [ bez.adaptation for bez in sorted(self.__pop, key = lambda Bez: Bez.adaptation) ]
+        return [ bez.adaptation for bez in self.__pop ]
 
     def show(self, which=None):
         """If which is None - draw all"""
-        pass #ploting
+        if which is None:
+            pass
+        else:
+            self.__pop[which].show()
 
 if __name__ == "__main__":
     N = 40
     Height = 10
     Width = 20
-    MaxIter = 100
+    MaxIter = 50
     Precision = 10
     MutationChance = 0.2
     MateChance = 0.9
@@ -145,6 +173,7 @@ if __name__ == "__main__":
     for i in range(MaxIter):
         pop = population.nextEpoch(MutationChance, MateChance)
         print i, "epoch's best:", pop[0]
+        print np.round(pop, 2)
         if pop[0] <= Precision:
             print "Precision reached!"
             break
