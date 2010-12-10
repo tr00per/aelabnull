@@ -10,10 +10,6 @@ from matplotlib.path import Path
 import matplotlib.patches as patches
 import getopt as go
 
-def dot(two):
-    """Computes dot product of [1, 0] and <two>."""
-    return two[1] / np.sqrt( (two**2).sum() )
-
 class Bezier:
     def __init__(self, height, width, p1p2=None):
         self.adaptation = 0.0
@@ -62,7 +58,8 @@ class Bezier:
         """ inclined plane: a = g * sin(alpha)
         or a = g * (h/l)
 
-        We ignore the g in the calculations to simplify stuff. """
+        We ignore the g in the calculations to simplify stuff.
+        It's included at the end."""
 
         t = 0.0 # time
         v = 0.0 # speed
@@ -108,7 +105,6 @@ class Bezier:
         ax.set_xlim(-self.__p3[0], 1.5*self.__p3[0])
         ax.set_ylim(-self.__p0[1], 1.5*self.__p0[1])
         plt.show()
-        #fig.canvas.draw()
 
 class Population:
     def __init__(self, N, height, width):
@@ -149,19 +145,15 @@ class Population:
 
         return [ bez.adaptation for bez in self.__pop ]
 
-    def show(self, which=None):
-        """If which is None - draw all"""
-        if which is None:
-            pass
-        else:
-            self.__pop[which].show()
+    def show(self, which=0):
+        self.__pop[which].show()
 
 if __name__ == "__main__":
     N = 40
     Height = 10
     Width = 20
     MaxIter = 50
-    Precision = 10
+    Precision = 0.1
     MutationChance = 0.2
     MateChance = 0.9
     opts, args = go.getopt(sys.argv[1:], "n:w:h:i:p:m:M:")
@@ -195,5 +187,5 @@ if __name__ == "__main__":
             break
     print "Bezier has evolved into Brachistochrone!"
 
-    print "Best of last epoch:", pop[0]
-    population.show(0)
+    print "Best of last epoch:", pop[0] / 9.81, "s"
+    population.show()
