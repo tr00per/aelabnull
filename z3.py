@@ -9,18 +9,40 @@ import matplotlib.pyplot as plot
 import getopt as go
 
 class Bezier:
-    def __init__(self, height, width):
-        self.__p0 = (0, height)
-        self.__p1 = [2 * rand.random() * width - width, 2 * rand.random() * height - height]
-        self.__p2 = [2 * rand.random() * width - width, 2 * rand.random() * height - height]
-        self.__p3 = (width, 0)
+    def __init__(self, height, width, p1p2=None):
         self.adaptation = 0.0
+        self.__p0 = np.array( (0, height) )
+        self.__p3 = np.array( (width, 0) )
+
+        if p1p2 is None:
+            self.__p1 = np.array( [2 * rand.random() * width - width, 2 * rand.random() * height - height] )
+            self.__p2 = np.array( [2 * rand.random() * width - width, 2 * rand.random() * height - height] )
+        else:
+            self.__p1 = np.array(p1p2[0])
+            self.__p2 = np.array(p1p2[1])
 
     def mutate(self):
-        pass
+        """Mutates by [-20%, 20%) for each coord"""
+        self.__p1[0] *= r.random() * 0.4 + 0.8 #[0.8, 1.2)
+        self.__p1[1] *= r.random() * 0.4 + 0.8
+        self.__p2[0] *= r.random() * 0.4 + 0.8
+        self.__p2[1] *= r.random() * 0.4 + 0.8
 
-    def mate(self, other):
-        pass
+    def mate(self, other, wX=0.3, wY=0.3):
+        """Returns touple of two children. wX & Wy = [0, 1]"""
+        rwX = 1 - wX
+        rwY = 1 - wY
+
+        coords = ()
+        one = Bezier(self.__height, self.__width, coords)
+
+        coords = ()
+        two = Bezier(self.__height, self.__width, coords)
+
+        return one, two
+
+    def clone(self):
+        return Bezier(height, width, (self.__p1, self.__p2))
 
     def getPoints():
         return (self.__p0, self.__p1, self.__p2, self.__p3)
@@ -36,8 +58,8 @@ class Bezier:
         ret = 0.0
         oldX = 0.0
         for X in np.arange(0.01, 1, 0.01):
-            v1 = np.array((oldX, self.__at(oldX)))
-            v2 = np.array((X, self.__at(X)))
+            v1 = self.__at(oldX)
+            v2 = self.__at(X)
 
             v = v2 - v1
             l = np.sqrt( (v ** 2).sum() ) # length
@@ -49,36 +71,58 @@ class Bezier:
         return ret
 
 class Population:
-    def __init__(self, N, height, width, mutationChance):
+    def __init__(self, N, height, width):
         self.__N = N
         self.__height = height
         self.__width = width
-        self.__mutate = mutationChance
 
         self.__pop = [ Bezier(self.__height, self.__width) for i in range(self.__N) ]
+        self.__calcAdaptations()
 
     def __calcAdaptations(self):
         for index in range(self.__N):
             self.__pop[index].adaptation = self.__pop[index].time()
 
-    def nextEpoch(self):
-        self.__calcAdaptations()
-        self.__pop.sort(key = lambda bez: bez.adaptation)
+    def nextEpoch(self, mutationChance, mateChance):
+        newPop = []
 
+        while len(newPop) < self.__N:
+            self.__pop.sort(key = lambda bez: bez.adaptation)
+
+            if r.random() < mateChance:
+                new1, new2 = self.__pop[0].mate(self.__pop[1])
+
+                if r.random() < self.__mutate: new1.mutate()
+                if r.random() < self.__mutate: new2.mutate()
+
+                newPop.append(new1)
+                newPop.append(new2)
+
+                self.__pop[0].adaptation *= 1.2 #lower mating position by 20%
+            else:
+                newPop.append(self.__pop[0].clone())
+                self.__pop[0].adaptation = float("Inf") #disable mating
+
+        self.__pop = newPop[:self.__N]
+        self.__calcAdaptations()
         print [ bez.adaptation for bez in self.__pop ]
 
     def show():
         #draw plot
         pass
 
+    def getPop():
+        return toupe(self.__pop)
+
 if __name__ == "__main__":
     N = 40
     Height = 10
     Width = 20
     MaxIter = 100
-    Precision = 0.8
+    Pecision = 10
     MutationChance = 0.2
-    opts, args = go.getopt(sys.argv[1:], "n:w:h:i:p:m:")
+    MateChance = 0.9
+    opts, args = go.getopt(sys.argv[1:], "n:w:h:i:p:m:M:")
     for opt, arg in opts:
         if opt == "-n":
             N = int(arg)
@@ -92,10 +136,13 @@ if __name__ == "__main__":
             Precision = float(arg)
         elif opt == "-m":
             MutationChance = float(arg)
+        elif opt == "-M":
+            MateChance = float(arg)
 
-    population = Population(N, Height, Width, MutationChance)
+    population = Population(N, Height, Width)
 
     for i in range(MaxIter):
-        population.nextEpoch()
+        population.nextEpoch(MutationChance, MateChance)
+        #if population.getPop()[0].adaptation <= Precision: break
 
-    print "Hello world!"
+    #print "Best:", population.getPop()[0].adaptation
