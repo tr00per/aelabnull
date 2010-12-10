@@ -4,7 +4,7 @@
 import sys
 import numpy as np
 import math as m
-import random as rand
+import random as r
 import matplotlib.pyplot as plot
 import getopt as go
 
@@ -15,8 +15,8 @@ class Bezier:
         self.__p3 = np.array( (width, 0) )
 
         if p1p2 is None:
-            self.__p1 = np.array( [2 * rand.random() * width - width, 2 * rand.random() * height - height] )
-            self.__p2 = np.array( [2 * rand.random() * width - width, 2 * rand.random() * height - height] )
+            self.__p1 = np.array( [2 * r.random() * width - width, 2 * r.random() * height - height] )
+            self.__p2 = np.array( [2 * r.random() * width - width, 2 * r.random() * height - height] )
         else:
             self.__p1 = np.array(p1p2[0])
             self.__p2 = np.array(p1p2[1])
@@ -29,20 +29,20 @@ class Bezier:
         self.__p2[1] *= r.random() * 0.4 + 0.8
 
     def mate(self, other, wX=0.3, wY=0.3):
-        """Returns touple of two children. wX & Wy = [0, 1]"""
-        rwX = 1 - wX
+        """Returns touple of two children. wX & Wy = (0, 1)"""
+        rwX = 1 - wX #r - reverse
         rwY = 1 - wY
 
-        coords = ()
-        one = Bezier(self.__height, self.__width, coords)
+        coords = (self.__p1 * wX + other.__p1 * rwX, self.__p2 * wY + other.__p2 * rwY)
+        one = Bezier(self.__p0[1], self.__p3[0], coords)
 
-        coords = ()
-        two = Bezier(self.__height, self.__width, coords)
+        coords = (self.__p1 * rwX + other.__p1 * wX, self.__p2 * rwY + other.__p2 * wY)
+        two = Bezier(self.__p0[1], self.__p3[0], coords)
 
         return one, two
 
     def clone(self):
-        return Bezier(height, width, (self.__p1, self.__p2))
+        return Bezier(self.__p0[1], self.__p3[0], (self.__p1, self.__p2))
 
     def getPoints():
         return (self.__p0, self.__p1, self.__p2, self.__p3)
@@ -57,7 +57,7 @@ class Bezier:
         sqrt2g = 1.0 / np.sqrt(2 * g)
         ret = 0.0
         oldX = 0.0
-        for X in np.arange(0.01, 1, 0.01):
+        for X in np.arange(0.05, 1, 0.05):
             v1 = self.__at(oldX)
             v2 = self.__at(X)
 
@@ -78,6 +78,7 @@ class Population:
 
         self.__pop = [ Bezier(self.__height, self.__width) for i in range(self.__N) ]
         self.__calcAdaptations()
+        self.__pop.sort(key = lambda bez: bez.adaptation)
 
     def __calcAdaptations(self):
         for index in range(self.__N):
@@ -87,13 +88,11 @@ class Population:
         newPop = []
 
         while len(newPop) < self.__N:
-            self.__pop.sort(key = lambda bez: bez.adaptation)
-
             if r.random() < mateChance:
                 new1, new2 = self.__pop[0].mate(self.__pop[1])
 
-                if r.random() < self.__mutate: new1.mutate()
-                if r.random() < self.__mutate: new2.mutate()
+                if r.random() < mutationChance: new1.mutate()
+                if r.random() < mutationChance: new2.mutate()
 
                 newPop.append(new1)
                 newPop.append(new2)
@@ -102,24 +101,23 @@ class Population:
             else:
                 newPop.append(self.__pop[0].clone())
                 self.__pop[0].adaptation = float("Inf") #disable mating
+            self.__pop.sort(key = lambda bez: bez.adaptation)
 
         self.__pop = newPop[:self.__N]
         self.__calcAdaptations()
-        print [ bez.adaptation for bez in self.__pop ]
 
-    def show():
-        #draw plot
-        pass
+        return [ bez.adaptation for bez in sorted(self.__pop, key = lambda Bez: Bez.adaptation) ]
 
-    def getPop():
-        return toupe(self.__pop)
+    def show(self, which=None):
+        """If which is None - draw all"""
+        pass #ploting
 
 if __name__ == "__main__":
     N = 40
     Height = 10
     Width = 20
     MaxIter = 100
-    Pecision = 10
+    Precision = 10
     MutationChance = 0.2
     MateChance = 0.9
     opts, args = go.getopt(sys.argv[1:], "n:w:h:i:p:m:M:")
@@ -139,10 +137,18 @@ if __name__ == "__main__":
         elif opt == "-M":
             MateChance = float(arg)
 
+    print "Creating population..."
     population = Population(N, Height, Width)
 
+    print "Oh! Bezier is evolving!"
+    pop = []
     for i in range(MaxIter):
-        population.nextEpoch(MutationChance, MateChance)
-        #if population.getPop()[0].adaptation <= Precision: break
+        pop = population.nextEpoch(MutationChance, MateChance)
+        print i, "epoch's best:", pop[0]
+        if pop[0] <= Precision:
+            print "Precision reached!"
+            break
+    print "Bezier has evolved into Brachistochrone!"
 
-    #print "Best:", population.getPop()[0].adaptation
+    print "Best of last epoch:", pop[0]
+    population.show(0)
