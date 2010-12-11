@@ -51,12 +51,11 @@ class Bezier:
 
     def __at(self, x):
         """x = [0, 1]; from Wikipedia"""
-        return (1-x)**3 * self.__p0 + 3 * ((1-x)**2) * x * self.__p1 \
-            + 3 * (1-x) * (x**2) * self.__p2 + (x**3) * self.__p3
+        return (1-x)**3 * self.__p0 + 3 * (1-x)**2 * x * self.__p1 \
+            + 3 * (1-x) * x**2 * self.__p2 + x**3 * self.__p3
 
     def time(self):
-        """ inclined plane: a = g * sin(alpha)
-        or a = g * (h/l)
+        """Inclined plane: a = g * sin(alpha) or a = g * (h/l)
 
         We ignore the g in the calculations to simplify stuff.
         It's included at the end."""
@@ -64,10 +63,11 @@ class Bezier:
         t = 0.0 # time
         v = 0.0 # speed
 
-        oldX = 0.0
-        for X in np.arange(0.02, 1.02, 0.02):
-            x1 = self.__at(oldX)
+        oldAt = self.__at(0.0)
+        for X in np.arange(0.02, 1.02, 0.02): #[0.02, 1.0]
+            x1 = oldAt
             x2 = self.__at(X)
+            oldAt = x2
 
             dx = x2 - x1
             l = np.sqrt( np.vdot(dx, dx) ) # length
@@ -79,8 +79,6 @@ class Bezier:
                 # we have stopped
                 return np.inf
             t += l / v
-
-            oldX = X
 
         return t
 
@@ -102,8 +100,8 @@ class Bezier:
         ax.text(self.__p2[0]+0.05, self.__p2[1]+0.05, 'P2')
         ax.text(self.__p3[0]+0.05, self.__p3[1]+0.05, 'P3')
 
-        ax.set_xlim(-self.__p3[0], 1.5*self.__p3[0])
-        ax.set_ylim(-self.__p0[1], 1.5*self.__p0[1])
+        ax.set_xlim(-0.5*self.__p3[0], 1.5*self.__p3[0])
+        ax.set_ylim(-0.5*self.__p0[1], 1.5*self.__p0[1])
         plt.show()
 
 class Population:
@@ -136,7 +134,7 @@ class Population:
                 self.__pop[0].adaptation *= 1.2 #lower mating position by 20%
             else:
                 newPop.append(self.__pop[0].clone())
-                self.__pop[0].adaptation = float("Inf") #disable mating
+                self.__pop[0].adaptation = np.inf #disable mating
             self.__pop.sort(key = lambda bez: bez.adaptation)
 
         self.__pop = newPop[:self.__N]
@@ -180,12 +178,12 @@ if __name__ == "__main__":
     pop = []
     for i in range(MaxIter):
         pop = population.nextEpoch(MutationChance, MateChance)
-        print i, "epoch's best:", pop[0]
-        print np.round(pop, 2)
+        print i, "epoch's best:", round(pop[0], 4)
+        #print np.round(pop, 2)
         if pop[0] <= Precision:
             print "Precision reached!"
             break
     print "Bezier has evolved into Brachistochrone!"
 
-    print "Best of last epoch:", pop[0] / 9.81, "s"
+    print "Best of last epoch:", round(pop[0], 6) / 9.81, "s"
     population.show()
