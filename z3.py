@@ -101,10 +101,10 @@ class Population:
         if self.__animate > 0: #init plot animation
             self.__figure = plt.figure()
             self.__ax = self.__figure.add_subplot(111)
+            self.__line, = self.__ax.plot([], [], 'x--', lw=2, color='black', ms=10, animated=True)
             self.__ax.set_ylim(-0.5*self.__height, 1.5*self.__height)
             self.__ax.set_xlim(-0.5*self.__width, 1.5*self.__width)
-            self.__bg = self.__figure.canvas.copy_from_bbox(self.__ax)
-            plt.show()
+            self.__bg = self.__figure.canvas.copy_from_bbox(self.__ax.bbox)
 
     def __calcAdaptations(self, target):
         for index in range(self.__N):
@@ -138,9 +138,16 @@ class Population:
             path = Path(verts, codes)
 
             self.__figure.canvas.restore_region(self.__bg)
-            self.__ax.add_patch( patches.PathPathch(path, facecolor='none', lw=2) )
+            self.__ax.add_patch( patches.PathPatch(path, facecolor='none', lw=2, animated=True) )
+
+            xs, ys = zip(*verts)
+            #self.__line.set_data(xs, ys)
+
+            #self.__ax.draw(self.__line)
+            self.__figure.canvas.blit(self.__ax.bbox)
 
             self.__cnt += 1
+            plt.show()
 
         return [ bez.adaptation for bez in self.__pop ]
 
