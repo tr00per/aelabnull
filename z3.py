@@ -82,43 +82,35 @@ class Bezier:
 
         return t
 
-    def show(self):
-        verts = [self.__p0, self.__p1, self.__p2, self.__p3]
-        codes = [Path.MOVETO, Path.CURVE4, Path.CURVE4, Path.CURVE4]
-        path = Path(verts, codes)
-
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-        patch = patches.PathPatch(path, facecolor='none', lw=2)
-        ax.add_patch(patch)
-
-        xs, ys = zip(*verts)
-        ax.plot(xs, ys, 'x--', lw=2, color='black', ms=10)
-
-        ax.text(self.__p0[0]+0.05, self.__p0[1]+0.05, 'P0')
-        ax.text(self.__p1[0]+0.05, self.__p1[1]+0.05, 'P1')
-        ax.text(self.__p2[0]+0.05, self.__p2[1]+0.05, 'P2')
-        ax.text(self.__p3[0]+0.05, self.__p3[1]+0.05, 'P3')
-
-        ax.set_xlim(-0.5*self.__p3[0], 1.5*self.__p3[0])
-        ax.set_ylim(-0.5*self.__p0[1], 1.5*self.__p0[1])
-        plt.show()
+    def getPath(self):
+        return (self.__p0, self.__p1, self.__p2, self.__p3),\
+            (Path.MOVETO, Path.CURVE4, Path.CURVE4, Path.CURVE4)
 
 class Population:
-    def __init__(self, N, height, width):
+    def __init__(self, N, height, width, animated):
         self.__N = N
         self.__height = height
         self.__width = width
+        self.__animate = animated
+        self.__cnt = 0
 
         self.__pop = [ Bezier(self.__height, self.__width) for i in range(self.__N) ]
         self.__calcAdaptations(self.__pop)
         self.__pop.sort(key = lambda bez: bez.adaptation)
 
+        if self.__animate > 0: #init plot animation
+            self.__figure = plt.figure()
+            self.__ax = self.__figure.add_subplot(111)
+            self.__ax.set_ylim(-0.5*self.__height, 1.5*self.__height)
+            self.__ax.set_xlim(-0.5*self.__width, 1.5*self.__width)
+            self.__bg = self.__figure.canvas.copy_from_bbox(self.__ax)
+            plt.show()
+
     def __calcAdaptations(self, target):
         for index in range(self.__N):
             target[index].adaptation = target[index].time()
 
-    def nextEpoch(self, mutationChance, mateChance):
+    def nextEpoch(self, mutationChance, mateChance, maxEpoch=None):
         newPop = []
 
         while len(newPop) < self.__N:
@@ -141,20 +133,49 @@ class Population:
         self.__calcAdaptations(self.__pop)
         self.__pop.sort(key = lambda bez: bez.adaptation)
 
+        if self.__animate > 0 and (self.__cnt % self.__animate == 0 or self.__cnt == maxEpoch): #animate plot
+            verts, codes = self.__pop[0].getPath()
+            path = Path(verts, codes)
+
+            self.__figure.canvas.restore_region(self.__bg)
+            self.__ax.add_patch( patches.PathPathch(path, facecolor='none', lw=2) )
+
+            self.__cnt += 1
+
         return [ bez.adaptation for bez in self.__pop ]
 
     def show(self, which=0):
-        self.__pop[which].show()
+        if self.__animate > 0: return #do not use both
+
+        verts, codes = self.__pop[which].getPath()
+        path = Path(verts, codes)
+
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        patch = patches.PathPatch(path, facecolor='none', lw=2)
+        ax.add_patch(patch)
+
+        xs, ys = zip(*verts)
+        ax.plot(xs, ys, 'x--', lw=2, color='black', ms=10)
+
+        ax.text(verts[0][0]+0.05, verts[0][1]+0.05, 'P0')
+        ax.text(verts[1][0]+0.05, verts[1][1]+0.05, 'P1')
+        ax.text(verts[2][0]+0.05, verts[2][1]+0.05, 'P2')
+        ax.text(verts[3][0]+0.05, verts[3][1]+0.05, 'P3')
+
+        ax.set_xlim(-0.5*self.__height, 1.5*self.__height)
+        ax.set_ylim(-0.5*self.__width, 1.5*self.__width)
+        plt.show()
 
 if __name__ == "__main__":
     N = 40
     Height = 10
     Width = 20
     MaxIter = 50
-    Precision = 0.1
     MutationChance = 0.2
     MateChance = 0.9
-    opts, args = go.getopt(sys.argv[1:], "n:w:h:i:p:m:M:")
+    Animation = 0
+    opts, args = go.getopt(sys.argv[1:], "n:w:h:i:p:m:M:a:A")
     for opt, arg in opts:
         if opt == "-n":
             N = int(arg)
@@ -164,26 +185,26 @@ if __name__ == "__main__":
             Height = int(arg)
         elif opt == "-i":
             MaxIter = int(arg)
-        elif opt == "-p":
-            Precision = float(arg)
         elif opt == "-m":
             MutationChance = float(arg)
         elif opt == "-M":
             MateChance = float(arg)
+        elif opt == "-a":
+            Animation = int(arg)
+        elif opt == "-A":
+            Animation = 1
 
     print "Creating population..."
-    population = Population(N, Height, Width)
+    population = Population(N, Height, Width, Animation)
 
     print "Oh! Bezier is evolving!"
     pop = []
     for i in range(MaxIter):
-        pop = population.nextEpoch(MutationChance, MateChance)
+        pop = population.nextEpoch(MutationChance, MateChance, MaxIter)
         print i, "epoch's best:", round(pop[0], 4)
         #print np.round(pop, 2)
-        if pop[0] <= Precision:
-            print "Precision reached!"
-            break
     print "Bezier has evolved into Brachistochrone!"
 
     print "Best of last epoch:", round(pop[0], 6) / 9.81, "s"
-    population.show()
+    if Animation == 0:
+        population.show()
