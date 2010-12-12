@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 from matplotlib.path import Path
 import matplotlib.patches as patches
 import getopt as go
+from threading import Thread
 
 class Bezier:
     def __init__(self, height, width, p1p2=None):
@@ -57,8 +58,7 @@ class Bezier:
     def time(self):
         """Inclined plane: a = g * sin(alpha) or a = g * (h/l)
 
-        We ignore the g in the calculations to simplify stuff.
-        It's included at the end."""
+        We ignore the g in the calculations to simplify stuff."""
 
         t = 0.0 # time
         v = 0.0 # speed
@@ -82,9 +82,11 @@ class Bezier:
 
         return t
 
-    def getPath(self):
-        return (self.__p0, self.__p1, self.__p2, self.__p3),\
-            (Path.MOVETO, Path.CURVE4, Path.CURVE4, Path.CURVE4)
+    def getVerts(self, codes=False):
+        ret = [(self.__p0, self.__p1, self.__p2, self.__p3)]
+        if codes:
+            ret.append((Path.MOVETO, Path.CURVE4, Path.CURVE4, Path.CURVE4))
+        return ret
 
 class Population:
     def __init__(self, N, height, width, animated):
@@ -101,9 +103,17 @@ class Population:
         if self.__animate > 0: #init plot animation
             self.__figure = plt.figure()
             self.__ax = self.__figure.add_subplot(111)
+            self.__text = self.__ax.text(-0.5*self.__width+0.5, 1.5*self.__height-1.0, str(round(self.__pop[0].adaptation, 4)), animated=True)
+
             self.__line, = self.__ax.plot([], [], 'x--', lw=2, color='black', ms=10, animated=True)
+
+            verts, codes = self.__pop[0].getVerts(True)
+            self.__patch = patches.PathPatch(Path(verts, codes), facecolor='none', lw=2, animated=True)
+            self.__ax.add_patch(self.__patch)
+
             self.__ax.set_ylim(-0.5*self.__height, 1.5*self.__height)
             self.__ax.set_xlim(-0.5*self.__width, 1.5*self.__width)
+            self.__ax.grid()
             self.__bg = self.__figure.canvas.copy_from_bbox(self.__ax.bbox)
 
     def __calcAdaptations(self, target):
@@ -134,20 +144,24 @@ class Population:
         self.__pop.sort(key = lambda bez: bez.adaptation)
 
         if self.__animate > 0 and (self.__cnt % self.__animate == 0 or self.__cnt == maxEpoch): #animate plot
-            verts, codes = self.__pop[0].getPath()
-            path = Path(verts, codes)
-
+            self.__figure.canvas.draw()
             self.__figure.canvas.restore_region(self.__bg)
-            self.__ax.add_patch( patches.PathPatch(path, facecolor='none', lw=2, animated=True) )
 
+            verts, = self.__pop[0].getVerts()
+            self.__patch.get_path().vertices = verts
+
+            self.__ax.draw_artist(self.__patch)
             xs, ys = zip(*verts)
-            #self.__line.set_data(xs, ys)
+            self.__line.set_data(xs, ys)
+            self.__ax.draw_artist(self.__line)
 
-            #self.__ax.draw(self.__line)
+            self.__text.text = str(round(self.__pop[0].adaptation, 4))
+            print self.__text.get_text(), self.__text
+            self.__ax.draw_artist(self.__text)
+
             self.__figure.canvas.blit(self.__ax.bbox)
 
             self.__cnt += 1
-            plt.show()
 
         return [ bez.adaptation for bez in self.__pop ]
 
@@ -170,16 +184,27 @@ class Population:
         ax.text(verts[2][0]+0.05, verts[2][1]+0.05, 'P2')
         ax.text(verts[3][0]+0.05, verts[3][1]+0.05, 'P3')
 
-        ax.set_xlim(-0.5*self.__height, 1.5*self.__height)
-        ax.set_ylim(-0.5*self.__width, 1.5*self.__width)
+        ax.set_xlim(-0.5*self.__width, 1.5*self.__width)
+        ax.set_ylim(-0.5*self.__height, 1.5*self.__height)
         plt.show()
+
+def run():
+    print "Oh! Bezier is evolving!"
+    pop = []
+    for i in range(MaxIter):
+        pop = run.population.nextEpoch(run.mutate, run.mate, run.maxI)
+        print i, "epoch's best:", round(pop[0], 4)
+        #print np.round(pop, 2)
+    print "Bezier has evolved into Brachistochrone!"
+    print "Best of last epoch:", round(pop[0], 6)
+
 
 if __name__ == "__main__":
     N = 40
     Height = 10
     Width = 20
     MaxIter = 50
-    MutationChance = 0.2
+    MutationChance = 0.3
     MateChance = 0.9
     Animation = 0
     opts, args = go.getopt(sys.argv[1:], "n:w:h:i:p:m:M:a:A")
@@ -202,16 +227,15 @@ if __name__ == "__main__":
             Animation = 1
 
     print "Creating population..."
-    population = Population(N, Height, Width, Animation)
+    run.population = Population(N, Height, Width, Animation)
+    run.mutate = MutationChance
+    run.mate = MateChance
+    run.maxI = MaxIter
 
-    print "Oh! Bezier is evolving!"
-    pop = []
-    for i in range(MaxIter):
-        pop = population.nextEpoch(MutationChance, MateChance, MaxIter)
-        print i, "epoch's best:", round(pop[0], 4)
-        #print np.round(pop, 2)
-    print "Bezier has evolved into Brachistochrone!"
-
-    print "Best of last epoch:", round(pop[0], 6) / 9.81, "s"
-    if Animation == 0:
-        population.show()
+    if Animation > 0:
+        thr = Thread(target=run)
+        thr.start()
+        plt.show()
+    else:
+        run()
+        run.population.show()
