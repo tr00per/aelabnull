@@ -103,7 +103,9 @@ class Population:
         if self.__animate > 0: #init plot animation
             self.__figure = plt.figure()
             self.__ax = self.__figure.add_subplot(111)
-            self.__text = self.__ax.text(-0.5*self.__width+0.5, 1.5*self.__height-1.0, str(round(self.__pop[0].adaptation, 4)), animated=True)
+
+            textval = round(self.__pop[0].adaptation, 4)
+            self.__text = self.__ax.text(-0.5*self.__width+0.5, 1.5*self.__height-1.0, textval, animated=True)
 
             self.__line, = self.__ax.plot([], [], 'x--', lw=2, color='black', ms=10, animated=True)
 
@@ -114,7 +116,6 @@ class Population:
             self.__ax.set_ylim(-0.5*self.__height, 1.5*self.__height)
             self.__ax.set_xlim(-0.5*self.__width, 1.5*self.__width)
             self.__ax.grid()
-            self.__bg = self.__figure.canvas.copy_from_bbox(self.__ax.bbox)
 
     def __calcAdaptations(self, target):
         for index in range(self.__N):
@@ -145,7 +146,6 @@ class Population:
 
         if self.__animate > 0 and (self.__cnt % self.__animate == 0 or self.__cnt == maxEpoch): #animate plot
             self.__figure.canvas.draw()
-            self.__figure.canvas.restore_region(self.__bg)
 
             verts, = self.__pop[0].getVerts()
             self.__patch.get_path().vertices = verts
@@ -155,8 +155,7 @@ class Population:
             self.__line.set_data(xs, ys)
             self.__ax.draw_artist(self.__line)
 
-            self.__text.text = str(round(self.__pop[0].adaptation, 4))
-            print self.__text.get_text(), self.__text
+            self.__text.set_text(round(self.__pop[0].adaptation, 4))
             self.__ax.draw_artist(self.__text)
 
             self.__figure.canvas.blit(self.__ax.bbox)
