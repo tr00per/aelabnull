@@ -99,6 +99,7 @@ class Population:
         self.__pop = [ Bezier(self.__height, self.__width) for i in range(self.__N) ]
         self.__calcAdaptations(self.__pop)
         self.__pop.sort(key = lambda bez: bez.adaptation)
+        print "Best at start:", round(self.__pop[0].adaptation, 6)
 
         if self.__animate > 0: #init plot animation
             self.__figure = plt.figure()
@@ -167,7 +168,7 @@ class Population:
     def show(self, which=0):
         if self.__animate > 0: return #do not use both
 
-        verts, codes = self.__pop[which].getPath()
+        verts, codes = self.__pop[which].getVerts(True)
         path = Path(verts, codes)
 
         fig = plt.figure()
@@ -196,7 +197,6 @@ def run():
         #print np.round(pop, 2)
     print "Bezier has evolved into Brachistochrone!"
     print "Best of last epoch:", round(pop[0], 6)
-
 
 if __name__ == "__main__":
     N = 40
