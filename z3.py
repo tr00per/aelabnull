@@ -16,6 +16,8 @@ class Bezier:
         self.adaptation = 0.0
         self.__p0 = np.array( (0, height) )
         self.__p3 = np.array( (width, 0) )
+        self.__width = width
+        self.__height = height
 
         if p1p2 is None:
             self.__p1 = np.array( [r.random() * width, 2 * r.random() * height - height] )
@@ -26,10 +28,10 @@ class Bezier:
 
     def mutate(self):
         """Mutates by [-20%, 20%) for each coord"""
-        self.__p1[0] *= r.random() * 0.4 + 0.8 #[0.8, 1.2)
-        self.__p1[1] *= r.random() * 0.4 + 0.8
-        self.__p2[0] *= r.random() * 0.4 + 0.8
-        self.__p2[1] *= r.random() * 0.4 + 0.8
+        self.__p1[0] += (1 if r.random() > 0.5 else -1) * 0.1 * self.__width
+        self.__p1[1] += (1 if r.random() > 0.5 else -1) * 0.1 * self.__height
+        self.__p2[0] += (1 if r.random() > 0.5 else -1) * 0.1 * self.__width
+        self.__p2[1] += (1 if r.random() > 0.5 else -1) * 0.1 * self.__height
 
     def mate(self, other, wX=0.3, wY=0.3):
         """Returns touple of two children. wX & Wy = (0, 1)"""
