@@ -28,10 +28,20 @@ class Bezier:
 
     def mutate(self):
         """Mutates by [-20%, 20%) for each coord"""
-        self.__p1[0] += (1 if r.random() > 0.5 else -1) * 0.1 * self.__width
-        self.__p1[1] += (1 if r.random() > 0.5 else -1) * 0.1 * self.__height
-        self.__p2[0] += (1 if r.random() > 0.5 else -1) * 0.1 * self.__width
-        self.__p2[1] += (1 if r.random() > 0.5 else -1) * 0.1 * self.__height
+        coord = r.random()
+        if coord < 0.25:
+            self.__p1[0] += (r.random()*0.5-0.25) * self.__width
+        elif coord < 0.5:
+            self.__p1[1] += (r.random()*0.5-0.25) * self.__height
+        elif coord < 0.75:
+            self.__p2[0] += (r.random()*0.5-0.25) * self.__width
+        else:
+            self.__p2[1] += (r.random()*0.5-0.25) * self.__height
+        # for fuck sake...
+        #if self.__p1[0] < 0:
+        #    self.__p1[0] = 0
+        #if self.__p2[0] < 0:
+        #    self.__p2[0] = 0
 
     def mate(self, other, wX=0.3, wY=0.3):
         """Returns touple of two children. wX & Wy = (0, 1)"""
@@ -57,10 +67,8 @@ class Bezier:
         return (1-x)**3 * self.__p0 + 3 * (1-x)**2 * x * self.__p1 \
             + 3 * (1-x) * x**2 * self.__p2 + x**3 * self.__p3
 
-    def time(self):
-        """Inclined plane: a = g * sin(alpha) or a = g * (h/l)
-
-        We ignore the g in the calculations to simplify stuff."""
+    def time(self, g = 9.81):
+        """Inclined plane: a = g * sin(alpha) or a = g * (h/l)"""
 
         t = 0.0 # time
         v = 0.0 # speed
@@ -72,15 +80,20 @@ class Bezier:
             oldAt = x2
 
             dx = x2 - x1
+            if dx[0] < 0:
+                # oh no way, baby, no coming back
+                return np.inf
+            # dx[1] is negative when we go down, positive when up
             l = np.sqrt( np.vdot(dx, dx) ) # length
-            h = - dx[1] #height
+            h = -dx[1] # height
 
-            a = (h/l)
+            a = g*(h/l)
+            v0 = v
             v += a # speed can increase or decrease here
             if v <= 0:
                 # we have stopped
                 return np.inf
-            t += l / v
+            t += l / ((v+v0)/2)
 
         return t
 
@@ -121,15 +134,17 @@ class Population:
             self.__ax.grid()
 
     def __calcAdaptations(self, target):
-        for index in range(self.__N):
+        for index in range(len(target)):
             target[index].adaptation = target[index].time()
 
     def nextEpoch(self, mutationChance, mateChance, maxEpoch=None):
         newPop = []
-
+        origPop = self.__pop
         while len(newPop) < self.__N:
             if r.random() < mateChance:
                 new1, new2 = self.__pop[0].mate(self.__pop[1])
+                # remove at least one 'used' guy
+                #self.__pop = self.__pop[1:] # __pop.pop()
 
                 if r.random() < mutationChance: new1.mutate()
                 if r.random() < mutationChance: new2.mutate()
@@ -139,13 +154,15 @@ class Population:
 
                 self.__pop[0].adaptation *= 1.2 #lower mating position by 20%
             else:
-                newPop.append(self.__pop[0].clone())
-                self.__pop[0].adaptation = np.inf #disable mating
-            self.__pop.sort(key = lambda bez: bez.adaptation)
+                new = self.__pop[0].clone()
+                if r.random() < mutationChance: new.mutate()
+                self.__pop = self.__pop[1:]
+            #self.__pop.sort(key = lambda bez: bez.adaptation)
 
-        self.__pop = newPop[:self.__N]
+        self.__pop = newPop # origPop + newPop
         self.__calcAdaptations(self.__pop)
         self.__pop.sort(key = lambda bez: bez.adaptation)
+        self.__pop = self.__pop[:self.__N] #trim
 
         if self.__animate > 0 and (self.__cnt % self.__animate == 0 or self.__cnt == maxEpoch): #animate plot
             self.__figure.canvas.draw()
