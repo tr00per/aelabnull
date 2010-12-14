@@ -219,7 +219,7 @@ def run():
 
 if __name__ == "__main__":
     N = 40
-    Height = 10
+    Height = 5
     Width = 20
     MaxIter = 50
     MutationChance = 0.3
