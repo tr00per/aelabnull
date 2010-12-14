@@ -80,20 +80,23 @@ class Bezier:
             oldAt = x2
 
             dx = x2 - x1
-            if dx[0] < 0:
+            #if dx[0] < 0:
                 # oh no way, baby, no coming back
-                return np.inf
+            #    return np.inf
             # dx[1] is negative when we go down, positive when up
             l = np.sqrt( np.vdot(dx, dx) ) # length
             h = -dx[1] # height
 
-            a = g*(h/l)
+            dt = np.sqrt(2 * l * l / (g*np.abs(h)))
+            a = g*(h/l) * dt
             v0 = v
             v += a # speed can increase or decrease here
             if v <= 0:
                 # we have stopped
                 return np.inf
-            t += l / ((v+v0)/2)
+            #t += 2*l / (v-v0)
+            #t += l / ((v+v0)/2)
+            t += dt
 
         return t
 
@@ -114,13 +117,13 @@ class Population:
         self.__pop = [ Bezier(self.__height, self.__width) for i in range(self.__N) ]
         self.__calcAdaptations(self.__pop)
         self.__pop.sort(key = lambda bez: bez.adaptation)
-        print "Best at start:", round(self.__pop[0].adaptation, 6)
+        print "Best at start:", round(self.__pop[0].adaptation, 8)
 
         if self.__animate > 0: #init plot animation
             self.__figure = plt.figure()
             self.__ax = self.__figure.add_subplot(111)
 
-            textval = round(self.__pop[0].adaptation, 4)
+            textval = round(self.__pop[0].adaptation, 6)
             self.__text = self.__ax.text(-0.5*self.__width+0.5, 1.5*self.__height-1.0, textval, animated=True)
 
             self.__line, = self.__ax.plot([], [], 'x--', lw=2, color='black', ms=10, animated=True)
@@ -157,7 +160,7 @@ class Population:
                 new = self.__pop[0].clone()
                 if r.random() < mutationChance: new.mutate()
                 self.__pop = self.__pop[1:]
-            #self.__pop.sort(key = lambda bez: bez.adaptation)
+            self.__pop.sort(key = lambda bez: bez.adaptation)
 
         self.__pop = newPop # origPop + newPop
         self.__calcAdaptations(self.__pop)
@@ -175,7 +178,7 @@ class Population:
             self.__line.set_data(xs, ys)
             self.__ax.draw_artist(self.__line)
 
-            self.__text.set_text(round(self.__pop[0].adaptation, 4))
+            self.__text.set_text(round(self.__pop[0].adaptation, 6))
             self.__ax.draw_artist(self.__text)
 
             self.__figure.canvas.blit(self.__ax.bbox)
@@ -212,10 +215,10 @@ def run():
     pop = []
     for i in range(MaxIter):
         pop = run.population.nextEpoch(run.mutate, run.mate, run.maxI)
-        print i, "epoch's best:", round(pop[0], 4)
+        print i, "epoch's best:", round(pop[0], 6)
         #print np.round(pop, 2)
     print "Bezier has evolved into Brachistochrone!"
-    print "Best of last epoch:", round(pop[0], 6)
+    print "Best of last epoch:", round(pop[0], 8)
 
 if __name__ == "__main__":
     N = 40
@@ -230,9 +233,9 @@ if __name__ == "__main__":
         if opt == "-n":
             N = int(arg)
         elif opt == "-w":
-            Width = int(arg)
+            Width = float(arg)
         elif opt == "-h":
-            Height = int(arg)
+            Height = float(arg)
         elif opt == "-i":
             MaxIter = int(arg)
         elif opt == "-m":
