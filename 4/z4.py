@@ -8,6 +8,8 @@ import random as r
 import getopt as go
 
 import matplotlib.pyplot as plt
+import tokenize as tok
+from StringIO import StringIO
 
 class OperatorException(Exception):
     def __init__(self, which):
@@ -83,29 +85,52 @@ class Node:
         else:
             return self.__value
 
+    def swap(self, other):
+        """Low-level mate.
+        Swaps values and children of given nodes."""
+        tmp['val'] = self.__value
+        tmp['first'] = self.__first
+        tmp['sec'] = self.__second
+
+        self.__value = other.__value
+        self.__first = other.__first
+        self.__second = other.__second
+
+        other.__value = tmp['val']
+        other.__first = tmp['first']
+        other.__second = tmp['sec']
+
+    def mutate(self):
+        """Generate random tree"""
+        pass
 
 def parse(function):
     """Gets input string (in Polish notation) and returns root of tree of Nodes"""
+    if function == "demo":
+        root =  Node("**")
+        root.addChild(Node("3"))
+        sub = Node("+")
+        root.addChild(sub)
+        sub.addChild(Node("1"))
+        sub.addChild(Node("1"))
+        return root
+    print "Nah, not yet."
 
-    root =  Node("**")
-    root.addChild(Node("3"))
-    sub = Node("+")
-    root.addChild(sub)
-    sub.addChild(Node("1"))
-    sub.addChild(Node("1"))
+    tokens = generate_tokens(StringIO(function).readline)
 
+    root = Node("0")
     return root
 
 if __name__ == "__main__":
-    demoMode = False;
+    inputExpr = "demo"
 
-    opts, args = go.getopt(sys.argv[1:], "D")
+    opts, args = go.getopt(sys.argv[1:], "i")
     for opt, arg in opts:
-        if opt == "-D":
-            demoMode = True
+        if opt == "-i":
+            inputExpr = arg
 
-    print "Hello world!"
+    print "Growin tree!"
 
-    tree = parse("Hello world!")
+    tree = parse(inputExpr)
     print tree.calc()
     print tree
