@@ -114,9 +114,16 @@ def parse(function):
         sub.addChild(Node("1"))
         sub.addChild(Node("1"))
         return root
-    print "Nah, not yet."
 
-    tokens = generate_tokens(StringIO(function).readline)
+    tokens = tok.generate_tokens(StringIO(function).readline)
+
+    try:
+        for t in tokens: #1 - symbol (np. sin), 2 - liczba, 51 - operator albo (), 0 - koniec
+            print t
+
+    except tok.TokenError as e:
+        print "Parsing error: ", str(e)
+        return None
 
     root = Node("0")
     return root
@@ -124,7 +131,7 @@ def parse(function):
 if __name__ == "__main__":
     inputExpr = "demo"
 
-    opts, args = go.getopt(sys.argv[1:], "i")
+    opts, args = go.getopt(sys.argv[1:], "i:")
     for opt, arg in opts:
         if opt == "-i":
             inputExpr = arg
@@ -132,5 +139,6 @@ if __name__ == "__main__":
     print "Growin tree!"
 
     tree = parse(inputExpr)
-    print tree.calc()
-    print tree
+    if tree is not None:
+        print tree.calc()
+        print tree
