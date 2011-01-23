@@ -14,10 +14,11 @@ from StringIO import StringIO
 remaining_tokens = []
 open_parenthesis = 0
 
-oper_probability = 3.0 #make sure initial trees are deep
+oper_probability = 1.0
 
-legal_one_filter = ("__doc__", "__name__", "__package__", "copysign", "e", "fmod", "fsum", "isinf", "isnan", "modf", "pi", "pow")
-legal_one = tuple( [elem for elem in dir(math) if elem not in legal_one_filter] )
+#legal_one_filter = ("__doc__", "__name__", "__package__", "atan2", "copysign", "e", "fmod", "frexp", "fsum", "hypot", "isinf", "isnan", "ldexp", "modf", "pi", "pow")
+#legal_one = tuple( [elem for elem in dir(math) if elem not in legal_one_filter] )
+legal_one = ('acos', 'acosh', 'asin', 'asinh', 'atan', 'atanh', 'cos', 'cosh', 'exp', 'log', 'log10', 'sin', 'sinh', 'sqrt', 'tan', 'tanh')
 legal_two = ('+', '-', '*', '/', '//', '**')
 legal_op = legal_two + legal_one
 legal_other = ("x", "e", "pi")
@@ -81,20 +82,38 @@ class Node:
             if self.__value in legal_two:
                 if self.__second is None:
                     raise ChildException("too few children for operator " + self.__value)
-                left = str(self.__first.calc(x))
-                right = str(self.__second.calc(x))
-                return str(eval(left + self.__value + right))
+                try:
+                    left = str(self.__first.calc(x))
+                except ZeroDivisionError:
+                    left = "np.inf"
+
+                try:
+                    right = str(self.__second.calc(x))
+                except ZeroDivisionError:
+                    right = "np.inf" #depends on numpy as np module import!
+
+                try:
+                    return str(eval(left + self.__value + right))
+                except Exception: #ValueError, OverflowError
+                    raise ZeroDivisionError
 
             elif self.__value in legal_one:
                 if self.__second is not None:
                     raise ChildException("too many children for operator " + self.__value)
-                arg = str(self.__first.calc(x))
-                return str(eval("math." + self.__value + "(" + arg + ")" )) #depends on math module import!
+                try:
+                    arg = str(self.__first.calc(x))
+                except ZeroDivisionError:
+                    arg = "np.inf"
+
+                try:
+                    return str(eval("math." + self.__value + "(" + arg + ")" )) #depends on math module import!
+                except Exception: #ValueError, OverflowError
+                    raise ZeroDivisionError
 
             else:
                 raise OperatorException(self.__operator)
 
-        elif self.__variable:
+        elif self.__variable is not None:
             return x
         else:
             return self.__value
@@ -154,8 +173,8 @@ class Node:
     def random_node(level, max_level=100):
         """Generate random tree"""
         _operators = legal_two
-        _leaves = list(legal_other)
-        _leaves.extend(np.arange(-10,10, 0.5))
+        _leaves = ['x', 'e', 'x', 'pi', 'x']
+        _leaves.extend(np.arange(-10, 10, 0.5))
         _functions = legal_one
 
         _oper_probability = oper_probability / (level+1.0); # the deeper, the more leaves
@@ -312,5 +331,9 @@ if __name__ == "__main__":
     if target is not None:
         print "Test case:"
         print target.calc(1)
-        print pop.POP[0].calc(1)
+        print pop.POP[0].calc(-2),
+        print pop.POP[0].calc(-1),
+        print pop.POP[0].calc(0),
+        print pop.POP[0].calc(1),
+        print pop.POP[0].calc(2)
         print target
