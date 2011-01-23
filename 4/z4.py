@@ -11,6 +11,9 @@ import matplotlib.pyplot as plt
 import tokenize as tok
 from StringIO import StringIO
 
+remaining_tokens = []
+open_parenthesis = 0
+
 class OperatorException(Exception):
     def __init__(self, which):
         self.value = "Unrecognized operator: " + which
@@ -27,11 +30,12 @@ class ChildException(Exception):
 
 class Node:
     def __init__(self, value):
-        """Operators are things that are not floats. Validatet later
+        """Operators are things that are not floats. Validated later
         Two-argument operators: +, -, *, /, //, %, **
         One-argument operators: sin, cos, tan, sqrt and so on (math module)
-        Actual list is held in Node::calc()
+        Actual list:
         """
+        self.__allowed_operators = ('+', '-', '*', '/', '**')
         self.__operator = False
         self.__first = None
         self.__second = None
@@ -59,7 +63,7 @@ class Node:
             if self.__first is None: #has at least one child?
                 raise ChildException("none children given for operator " + self.__value)
 
-            if self.__value in ('+', '-', '*', '/', '//', '%', '**'):
+            if self.__value in self.__allowed_operators:
                 if self.__second is None:
                     raise ChildException("too few children for operator " + self.__value)
                 return str(eval(self.__first.calc() + self.__value + self.__second.calc()))
@@ -104,8 +108,53 @@ class Node:
         """Generate random tree"""
         pass
 
+def parse_recursion():
+    global remaining_tokens, open_parenthesis
+
+    toknum, token = remaining_tokens.pop(0) # get first
+    get_next = True
+    needs_children = False # who does...
+
+    while get_next and toknum != 0:
+        #print remaining_tokens
+        get_next = False # default
+        if toknum == 51:
+            if token == '(':
+                open_parenthesis += 1
+                get_next = True
+            elif token == ')':
+                open_parenthesis -= 1
+                get_next = True
+                if open_parenthesis < 0:
+                    print "Parsing error, parenthesis mismatch"
+                    exit(1)
+            if get_next:
+                print "Ignoring token %s, fetching..." % token
+                toknum, token = remaining_tokens.pop(0) # get again\
+                print "got %s" % token
+            else:
+                needs_children = True
+
+    print "parsing token %s" % token
+    if toknum == 1:
+        needs_children = True # will be an operator or function
+
+    node = Node(token)
+    is_math = token in dir(math) # operators have two children. usually.
+
+    print "Operator %s needs %d childen." % (token, (0 if not needs_children else (1 if is_math else 2)))
+    if needs_children:
+        print "first child..."
+        node.addChild(parse_recursion()) # first child
+        if not is_math:
+            print "second child..."
+            node.addChild(parse_recursion()) # second child
+
+    return node
+
 def parse(function):
     """Gets input string (in Polish notation) and returns root of tree of Nodes"""
+    global remaining_tokens, open_parenthesis
     if function == "demo":
         root =  Node("**")
         root.addChild(Node("3"))
@@ -116,16 +165,21 @@ def parse(function):
         return root
 
     tokens = tok.generate_tokens(StringIO(function).readline)
-
     try:
-        for t in tokens: #1 - symbol (np. sin), 2 - liczba, 51 - operator albo (), 0 - koniec
-            print t
+        for toknum, tokval, _, _, _ in tokens: #1 - symbol (np. sin), 2 - liczba, 51 - operator albo (), 0 - koniec
+            sys.stdout.write(tokval+" ") # javish
+            remaining_tokens.append((toknum, tokval))
 
     except tok.TokenError as e:
         print "Parsing error: ", str(e)
         return None
 
-    root = Node("0")
+    # cool, no errors. now, seriously, parse.
+    root = parse_recursion()
+    if open_parenthesis != 0:
+        print "Parsing error, parenthesis mismatch (%d left open after parsing)" % open_parenthesis
+        exit(1)
+
     return root
 
 if __name__ == "__main__":
