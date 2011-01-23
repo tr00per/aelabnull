@@ -114,8 +114,42 @@ class Node:
         other.__second = tmp['sec']
 
     def mutate(self):
-        """Generate random tree"""
+        """Modify random thing"""
         pass
+
+    @staticmethod
+    def random_node(level):
+        """Generate random tree"""
+        _operators = ['+', '-', '*', '/', '**']
+        _leaves = ['x', math.e, math.pi] + range(1,10)
+        _functions = ['sin', 'cos', 'log', 'log10', 'sqrt']
+
+        _oper_probability = oper_probability / level; # the deeper, the more leaves
+        _func_probability = _oper_probability * 0.6
+        _leaf_probability = 1 - (_oper_probability + _func_probability)
+
+        chance = r.random()
+        if chance < _oper_probability:
+            # new operator
+            node = Node(r.choice(_operators))
+            node.addChild(Node.random_node(level+1))
+            node.addChild(Node.random_node(level+1))
+        elif chance < (_oper_probability + _func_probability):
+            # new function
+            node = Node(r.choice(_functions))
+            node.addChild(Node.random_node(level+1))
+        else:
+            # new leaf
+            return Node(r.choice(_leaves))
+        return node
+
+class Population:
+    def __init__(self, n, x_from, x_to, target):
+        pass
+
+    def random_individual(self):
+        return Node.random_node(0)
+
 
 def parse_recursion():
     global remaining_tokens, open_parenthesis
@@ -125,7 +159,7 @@ def parse_recursion():
     needs_children = False # who does...
 
     while get_next and toknum != 0:
-        #print remaining_tokens
+        #REMOVE_ME print remaining_tokens
         get_next = False # default
         if toknum == 51:
             if token == '(':
@@ -135,16 +169,16 @@ def parse_recursion():
                 open_parenthesis -= 1
                 get_next = True
                 if open_parenthesis < 0:
-                    #print "Parsing error, parenthesis mismatch"
+                    print "Parsing error, parenthesis mismatch (too many closed ones)"
                     exit(1)
             if get_next:
-                #print "Ignoring token %s, fetching..." % token
+                #REMOVE_ME print "Ignoring token %s, fetching..." % token
                 toknum, token = remaining_tokens.pop(0) # get again\
-                #print "got %s" % token
+                #REMOVE_ME print "got %s" % token
             else:
                 needs_children = True
 
-    #print "parsing token %s" % token
+    #REMOVE_ME print "parsing token %s" % token
     if toknum == 1:
         if token != 'x':
             needs_children = True # will be an operator or function
@@ -155,12 +189,12 @@ def parse_recursion():
     node = Node(token)
     is_math = token in dir(math) # operators have two children. usually.
 
-    #print "Operator %s needs %d childen." % (token, (0 if not needs_children else (1 if is_math else 2)))
+    #REMOVE_ME print "Operator %s needs %d childen." % (token, (0 if not needs_children else (1 if is_math else 2)))
     if needs_children:
-        #print "first child..."
+        #REMOVE_ME print "first child..."
         node.addChild(parse_recursion()) # first child
         if not is_math:
-            #print "second child..."
+            #REMOVE_ME print "second child..."
             node.addChild(parse_recursion()) # second child
 
     return node
@@ -180,7 +214,6 @@ def parse(function):
     tokens = tok.generate_tokens(StringIO(function).readline)
     try:
         for toknum, tokval, _, _, _ in tokens: #1 - symbol (np. sin), 2 - liczba, 51 - operator albo (), 0 - koniec
-            sys.stdout.write(tokval+" ") # javish
             remaining_tokens.append((toknum, tokval))
 
     except tok.TokenError as e:
@@ -205,10 +238,10 @@ if __name__ == "__main__":
         if opt == "-i":
             inputExpr = arg
 
-    print "Growin tree!"
+    target = parse(inputExpr)
+    print "Seeking antiderivative for ' %s '!" % target
 
-    tree = parse(inputExpr)
-    if tree is not None:
+    if target is not None:
         print ""
-        print tree.calc(0)
-        print tree
+        print target.calc(0)
+        print target
