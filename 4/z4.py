@@ -14,6 +14,15 @@ from StringIO import StringIO
 remaining_tokens = []
 open_parenthesis = 0
 
+oper_probability = 3.0 #make sure initial trees are deep
+
+legal_one_filter = ("__doc__", "__name__", "__package__", "copysign", "e", "fmod", "fsum", "isinf", "isnan", "modf", "pi", "pow")
+legal_one = tuple( [elem for elem in dir(math) if elem not in legal_one_filter] )
+legal_two = ('+', '-', '*', '/', '//', '**')
+legal_op = legal_two + legal_one
+legal_other = ("x", "e", "pi")
+legal_all = legal_other + legal_op
+
 class OperatorException(Exception):
     def __init__(self, which):
         self.value = "Unrecognized operator: " + which
@@ -35,11 +44,11 @@ class Node:
         One-argument operators: sin, cos, tan, sqrt and so on (math module)
         Actual list:
         """
-        self.__allowed_operators = ('+', '-', '*', '/', '**')
+        self.__allowed_operators = legal_two
         self.__operator = False
         self.__first = None
         self.__second = None
-        self.__variable = False
+        self.__variable = None
 
         self.__value = str(value).strip()
 
@@ -48,6 +57,8 @@ class Node:
         except ValueError:
             if self.__value == 'x':
                 self.__variable = 'x'
+            elif self.__value in legal_other:
+                self.__variable = 'math.' + self.__value
             else:
                 self.__operator = True
 
@@ -67,14 +78,14 @@ class Node:
             if self.__first is None: #has at least one child?
                 raise ChildException("none children given for operator " + self.__value)
 
-            if self.__value in self.__allowed_operators:
+            if self.__value in legal_two:
                 if self.__second is None:
                     raise ChildException("too few children for operator " + self.__value)
                 left = str(self.__first.calc(x))
                 right = str(self.__second.calc(x))
                 return str(eval(left + self.__value + right))
 
-            elif self.__value in dir(math):
+            elif self.__value in legal_one:
                 if self.__second is not None:
                     raise ChildException("too many children for operator " + self.__value)
                 arg = str(self.__first.calc(x))
@@ -115,20 +126,45 @@ class Node:
 
     def mutate(self):
         """Modify random thing"""
-        pass
+        choice = r.random()
+        if choice < 0.3334: #change operator/value
+            if self.__operator:
+                if self.__second is not None: #change operator
+                    self.__value = r.choice(legal_two)
+                else:
+                    self.__value = r.choice(legal_one)
+            else:
+                if self.__variable is not None:
+                    self.__value += self.__value * (3 * r.random() - 2) #-200% + 100%
+                #hope that unneeded variables and constants will get whiped by surrounding
+
+        elif choice < 0.6667: #change subnode
+            if self.__second is not None:
+                which = r.random()
+                if which < 0.5:
+                    self.__second.mutate()
+                    return
+            self.__first.mutate()
+            pass
+
+        else: #change whole node
+            tmp = Node.random_node(r.randint(0, 100), 100)
 
     @staticmethod
-    def random_node(level):
+    def random_node(level, max_level=100):
         """Generate random tree"""
-        _operators = ['+', '-', '*', '/', '**']
-        _leaves = ['x', math.e, math.pi] + range(1,10)
-        _functions = ['sin', 'cos', 'log', 'log10', 'sqrt']
+        _operators = legal_two
+        _leaves = list(legal_other)
+        _leaves.extend(np.arange(-10,10, 0.5))
+        _functions = legal_one
 
-        _oper_probability = oper_probability / level; # the deeper, the more leaves
+        _oper_probability = oper_probability / (level+1.0); # the deeper, the more leaves
         _func_probability = _oper_probability * 0.6
         _leaf_probability = 1 - (_oper_probability + _func_probability)
 
         chance = r.random()
+        if level >= max_level: #fail-safe
+            chance = 1
         if chance < _oper_probability:
             # new operator
             node = Node(r.choice(_operators))
@@ -144,8 +180,24 @@ class Node:
         return node
 
 class Population:
-    def __init__(self, n, x_from, x_to, target):
-        pass
+    def __init__(self, n, maxEpoch, x_from, x_to, target):
+        self.MAXEPOCH = maxEpoch
+        self.FROM = x_from
+        self.TO = x_to
+        self.STEP = np.abs(x_to - x_from) * 0.05 #21 control points
+        self.TARGET = self.__calc_values(target)
+
+        self.POP = [self.random_individual() for i in range(n)]
+        print self.POP[0]
+
+    def __calc_values(self, target):
+        ret = []
+        for x in np.arange(self.FROM, self.TO+self.STEP, self.STEP):
+            try:
+                ret.append(target.calc(x))
+            except ZeroDivisionError:
+                ret.append(np.inf)
+        return np.array(ret)
 
     def random_individual(self):
         return Node.random_node(0)
@@ -208,7 +260,7 @@ def parse(function):
         sub = Node("+")
         root.addChild(sub)
         sub.addChild(Node("1"))
-        sub.addChild(Node("1"))
+        sub.addChild(Node("x"))
         return root
 
     tokens = tok.generate_tokens(StringIO(function).readline)
@@ -232,16 +284,33 @@ def parse(function):
 
 if __name__ == "__main__":
     inputExpr = "demo"
+    x_from = -2.0
+    x_to = 2.0
+    n = 20
+    maxEpoch = 100
 
-    opts, args = go.getopt(sys.argv[1:], "i:")
+    opts, args = go.getopt(sys.argv[1:], "i:f:t:n:n:o:")
     for opt, arg in opts:
         if opt == "-i":
             inputExpr = arg
+        if opt == "-f":
+            x_from = float(arg)
+        if opt == "-t":
+            x_to = float(arg)
+        if opt == "-n":
+            n = int(arg)
+        if opt == "-m":
+            maxEpoch = int(arg)
+        if opt == "-o":
+            oper_probability = float(arg)
 
     target = parse(inputExpr)
     print "Seeking antiderivative for ' %s '!" % target
 
+    pop = Population(n, maxEpoch, x_from, x_to, target)
+
     if target is not None:
-        print ""
-        print target.calc(0)
+        print "Test case:"
+        print target.calc(1)
+        print pop.POP[0].calc(1)
         print target
