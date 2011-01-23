@@ -59,7 +59,7 @@ class Node:
             if self.__value == 'x':
                 self.__variable = 'x'
             elif self.__value in legal_other:
-                self.__variable = 'math.' + self.__value
+                self.__variable = 'np.' + self.__value #depends on numpy as np module import!
             else:
                 self.__operator = True
 
@@ -85,7 +85,7 @@ class Node:
                 try:
                     left = str(self.__first.calc(x))
                 except ZeroDivisionError:
-                    left = "np.inf"
+                    left = "0.0"
 
                 try:
                     right = str(self.__second.calc(x))
@@ -94,7 +94,7 @@ class Node:
 
                 try:
                     return str(eval(left + self.__value + right))
-                except Exception: #ValueError, OverflowError
+                except ValueError, OverflowError:
                     raise ZeroDivisionError
 
             elif self.__value in legal_one:
@@ -103,11 +103,11 @@ class Node:
                 try:
                     arg = str(self.__first.calc(x))
                 except ZeroDivisionError:
-                    arg = "np.inf"
+                    arg = "np.inf" #depends on numpy as np module import!
 
                 try:
                     return str(eval("math." + self.__value + "(" + arg + ")" )) #depends on math module import!
-                except Exception: #ValueError, OverflowError
+                except ValueError, OverflowError:
                     raise ZeroDivisionError
 
             else:
@@ -251,7 +251,7 @@ def parse_recursion():
 
     #REMOVE_ME print "parsing token %s" % token
     if toknum == 1:
-        if token != 'x':
+        if token not in legal_other:
             needs_children = True # will be an operator or function
     elif toknum == 0:
         # this should happen only during the second "cleanup parenthesis" call
