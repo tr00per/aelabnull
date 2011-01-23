@@ -39,13 +39,17 @@ class Node:
         self.__operator = False
         self.__first = None
         self.__second = None
+        self.__variable = False
 
         self.__value = str(value).strip()
 
         try:
             testVar = float(self.__value)
         except ValueError:
-            self.__operator = True
+            if self.__value == 'x':
+                self.__variable = 'x'
+            else:
+                self.__operator = True
 
     def addChild(self, child):
         if self.__first is None:
@@ -58,7 +62,7 @@ class Node:
 
         raise ChildException("child addition")
 
-    def calc(self):
+    def calc(self, x):
         if self.__operator:
             if self.__first is None: #has at least one child?
                 raise ChildException("none children given for operator " + self.__value)
@@ -66,16 +70,21 @@ class Node:
             if self.__value in self.__allowed_operators:
                 if self.__second is None:
                     raise ChildException("too few children for operator " + self.__value)
-                return str(eval(self.__first.calc() + self.__value + self.__second.calc()))
+                left = str(self.__first.calc(x))
+                right = str(self.__second.calc(x))
+                return str(eval(left + self.__value + right))
 
             elif self.__value in dir(math):
                 if self.__second is not None:
                     raise ChildException("too many children for operator " + self.__value)
-                return str(eval("math." + self.__value + "(" + self.__first.calc() + ")" )) #depends on math module import!
+                arg = str(self.__first.calc(x))
+                return str(eval("math." + self.__value + "(" + arg + ")" )) #depends on math module import!
 
             else:
                 raise OperatorException(self.__operator)
 
+        elif self.__variable:
+            return x
         else:
             return self.__value
 
@@ -105,8 +114,42 @@ class Node:
         other.__second = tmp['sec']
 
     def mutate(self):
-        """Generate random tree"""
+        """Modify random thing"""
         pass
+
+    @staticmethod
+    def random_node(level):
+        """Generate random tree"""
+        _operators = ['+', '-', '*', '/', '**']
+        _leaves = ['x', math.e, math.pi] + range(1,10)
+        _functions = ['sin', 'cos', 'log', 'log10', 'sqrt']
+
+        _oper_probability = oper_probability / level; # the deeper, the more leaves
+        _func_probability = _oper_probability * 0.6
+        _leaf_probability = 1 - (_oper_probability + _func_probability)
+
+        chance = r.random()
+        if chance < _oper_probability:
+            # new operator
+            node = Node(r.choice(_operators))
+            node.addChild(Node.random_node(level+1))
+            node.addChild(Node.random_node(level+1))
+        elif chance < (_oper_probability + _func_probability):
+            # new function
+            node = Node(r.choice(_functions))
+            node.addChild(Node.random_node(level+1))
+        else:
+            # new leaf
+            return Node(r.choice(_leaves))
+        return node
+
+class Population:
+    def __init__(self, n, x_from, x_to, target):
+        pass
+
+    def random_individual(self):
+        return Node.random_node(0)
+
 
 def parse_recursion():
     global remaining_tokens, open_parenthesis
@@ -116,7 +159,7 @@ def parse_recursion():
     needs_children = False # who does...
 
     while get_next and toknum != 0:
-        #print remaining_tokens
+        #REMOVE_ME print remaining_tokens
         get_next = False # default
         if toknum == 51:
             if token == '(':
@@ -126,28 +169,32 @@ def parse_recursion():
                 open_parenthesis -= 1
                 get_next = True
                 if open_parenthesis < 0:
-                    print "Parsing error, parenthesis mismatch"
+                    print "Parsing error, parenthesis mismatch (too many closed ones)"
                     exit(1)
             if get_next:
-                print "Ignoring token %s, fetching..." % token
+                #REMOVE_ME print "Ignoring token %s, fetching..." % token
                 toknum, token = remaining_tokens.pop(0) # get again\
-                print "got %s" % token
+                #REMOVE_ME print "got %s" % token
             else:
                 needs_children = True
 
-    print "parsing token %s" % token
+    #REMOVE_ME print "parsing token %s" % token
     if toknum == 1:
-        needs_children = True # will be an operator or function
+        if token != 'x':
+            needs_children = True # will be an operator or function
+    elif toknum == 0:
+        # this should happen only during the second "cleanup parenthesis" call
+        return None
 
     node = Node(token)
     is_math = token in dir(math) # operators have two children. usually.
 
-    print "Operator %s needs %d childen." % (token, (0 if not needs_children else (1 if is_math else 2)))
+    #REMOVE_ME print "Operator %s needs %d childen." % (token, (0 if not needs_children else (1 if is_math else 2)))
     if needs_children:
-        print "first child..."
+        #REMOVE_ME print "first child..."
         node.addChild(parse_recursion()) # first child
         if not is_math:
-            print "second child..."
+            #REMOVE_ME print "second child..."
             node.addChild(parse_recursion()) # second child
 
     return node
@@ -167,16 +214,17 @@ def parse(function):
     tokens = tok.generate_tokens(StringIO(function).readline)
     try:
         for toknum, tokval, _, _, _ in tokens: #1 - symbol (np. sin), 2 - liczba, 51 - operator albo (), 0 - koniec
-            sys.stdout.write(tokval+" ") # javish
             remaining_tokens.append((toknum, tokval))
 
     except tok.TokenError as e:
-        print "Parsing error: ", str(e)
+        #print "Parsing error: ", str(e)
         return None
 
     # cool, no errors. now, seriously, parse.
-    root = parse_recursion()
-    if open_parenthesis != 0:
+    root = parse_recursion() # this should build up the tree
+    none = parse_recursion() # this should return nothing, since only parenthesis should follow
+    if open_parenthesis != 0 or none != None:
+        #print none
         print "Parsing error, parenthesis mismatch (%d left open after parsing)" % open_parenthesis
         exit(1)
 
@@ -190,9 +238,10 @@ if __name__ == "__main__":
         if opt == "-i":
             inputExpr = arg
 
-    print "Growin tree!"
+    target = parse(inputExpr)
+    print "Seeking antiderivative for ' %s '!" % target
 
-    tree = parse(inputExpr)
-    if tree is not None:
-        print tree.calc()
-        print tree
+    if target is not None:
+        print ""
+        print target.calc(0)
+        print target
