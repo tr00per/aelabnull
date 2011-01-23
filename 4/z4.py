@@ -207,7 +207,6 @@ class Population:
         self.TARGET = self.__calc_values(target)
 
         self.POP = [self.random_individual() for i in range(n)]
-        print self.POP[0]
 
     def __calc_values(self, target):
         ret = []
@@ -217,6 +216,12 @@ class Population:
             except ZeroDivisionError:
                 ret.append(np.inf)
         return np.array(ret)
+
+    def __calc_diffs(self, x):
+        #FIXME calc differentials
+        ret = []
+        for specimen in self.POP:
+            pass
 
     def random_individual(self):
         return Node.random_node(0)
@@ -294,7 +299,7 @@ def parse(function):
     # cool, no errors. now, seriously, parse.
     root = parse_recursion() # this should build up the tree
     none = parse_recursion() # this should return nothing, since only parenthesis should follow
-    if open_parenthesis != 0 or none != None:
+    if open_parenthesis != 0 or none is not None:
         #print none
         print "Parsing error, parenthesis mismatch (%d left open after parsing)" % open_parenthesis
         exit(1)
