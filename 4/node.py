@@ -79,7 +79,10 @@ class Node:
                     right = "-np.inf"
 
                 try:
-                    return eval(left + self.__value + right)
+                    if self.__value == '**':
+                        return eval('math.pow('+left+','+right+')')
+                    else:
+                        return eval(left + self.__value + right)
                 except ArithmeticError:
                     return np.inf
                 except ValueError:
