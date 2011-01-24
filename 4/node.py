@@ -34,15 +34,17 @@ class Node:
 
         self.__value = str(value).strip()
 
-        try:
-            testVar = float(self.__value)
-        except ValueError:
-            if self.__value == 'x':
-                self.__variable = 'x'
-            elif self.__value in legal_other:
-                self.__variable = 'np.' + self.__value #depends on numpy as np module import!
-            else:
+        if self.__value == 'x':
+            self.__variable = 'x'
+        elif self.__value in legal_other:
+            self.__variable = 'np.' + self.__value #depends on numpy as np module import!
+        else:
+            try:
+                testVar = float(self.__value)
+            except ValueError:
                 self.__operator = True
+            else:
+                self.__value = testVar
 
     def addChild(self, child):
         if self.__first is None:
@@ -103,7 +105,7 @@ class Node:
                 raise OperatorException(self.__operator)
 
         elif self.__variable is not None:
-            return x
+            return eval(self.__variable)
         else:
             return self.__value
 
@@ -115,7 +117,7 @@ class Node:
                 ret += " " + str(self.__second)
             return ret + ")"
         else:
-            return self.__value
+            return str(self.__value)
 
     def swap(self, other):
         """Low-level mate.
@@ -123,16 +125,22 @@ class Node:
         tmp = {
             'val' : self.__value,
             'first' : self.__first,
-            'sec' : self.__second
+            'sec' : self.__second,
+            'oper' : self.__operator,
+            'var' : self.__variable
         }
 
         self.__value = other.__value
         self.__first = other.__first
         self.__second = other.__second
+        self.__operator = other.__operator
+        self.__variable = other.__variable
 
         other.__value = tmp['val']
         other.__first = tmp['first']
         other.__second = tmp['sec']
+        other.__operator = tmp['oper']
+        other.__variable = tmp['var']
 
     def clone(self):
         sibling = Node(self.__value)
@@ -142,38 +150,59 @@ class Node:
             sibling.addChild(self.__second.clone())
         return sibling
 
+    def __mutate_value(self):
+        if self.__operator:
+            if self.__second is not None: #change operator
+                self.__value = r.choice(legal_two)
+            else:
+                self.__value = r.choice(legal_one)
+        else:
+            if self.__variable is None:
+                self.__value += self.__value * (3 * r.random() - 2) #-200% + 100%
+            #hope that unneeded variables and constants will get whiped by surrounding
+
+    def __mutate_subnode(self):
+        if self.__second is not None:
+            which = r.random()
+            if which < 0.5:
+                self.__second.mutate()
+                return
+        self.__first.mutate()
+
+    def __mutate_all(self):
+        tmp = Node.random_node(r.randint(0, 49))
+        self.swap(tmp)
+
     def mutate(self):
         """Modify random thing"""
         choice = r.random()
-        if choice < 0.3334: #change operator/value
-            if self.__operator:
-                if self.__second is not None: #change operator
-                    self.__value = r.choice(legal_two)
+        if choice < 0.3334:     #change operator/value
+            self.__mutate_value()
+
+        elif choice < 0.6667:   #change subnode
+            if self.__first is not None:
+                self.__mutate_subnode()
+            else:           #there are no subnodes!
+                if r.random() < 0.5:
+                    self.__mutate_value()
                 else:
-                    self.__value = r.choice(legal_one)
-            else:
-                if self.__variable is not None:
-                    self.__value += self.__value * (3 * r.random() - 2) #-200% + 100%
-                #hope that unneeded variables and constants will get whiped by surrounding
+                    self.__mutate_all()
 
-        elif choice < 0.6667: #change subnode
-            if self.__second is not None:
-                which = r.random()
-                if which < 0.5:
-                    self.__second.mutate()
-                    return
-            self.__first.mutate()
-            pass
-
-        else: #change whole node
-            tmp = Node.random_node(r.randint(0, 100), 100)
+        else:                   #change whole node
+            self.__mutate_all()
 
     def __random_subnode(self):
-        """Pick a subnode randomly. Avoid root."""
+        """Pick a subnode randomly. Avoid root.
+        A node can have two OR one child."""
         if r.random() < 0.5:
             pick = self.__first
         else:
             pick = self.__second
+            if pick is None:
+                pick = self.__first
+
+        if pick is None:
+            return self
 
         while r.random() < 0.667:
             # go deeper
@@ -191,7 +220,7 @@ class Node:
         return [node1, node2]
 
     @staticmethod
-    def random_node(level, max_level=100):
+    def random_node(level, max_level=50):
         """Generate random tree"""
         _operators = legal_two
         _leaves = ['x', 'e',  'pi']
