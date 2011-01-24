@@ -1,0 +1,60 @@
+% vim:encoding=utf8 ft=tex sts=2 sw=2 et:
+
+\documentclass{classrep2}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+
+\studycycle{Informatyka, studia dzienne, mgr jednolite}
+\coursesemester{IX}
+
+\coursename{Obliczenia ewolucyjne}
+\courseyear{2010/2011}
+
+\courseteacher{mgr inż. Łukasz Chomątek}
+\coursegroup{wtorek, 14:30}
+
+\author{
+  \studentinfo{Cezar Pokorski}{138077} \and
+  \studentinfo{Artur Czajka}{137971} 
+}
+
+\title{Zadanie 4: Całkowanie przez GP}
+\hgurl{https://aelabnull.googlecode.com/hg/4/}
+
+\begin{document}
+\maketitle
+
+\section{Istota zadania}
+Dla zadanej całki nieoznaczonej należy ewolucyjnie wygenerować formułę symboliczną reprezentującą funkcję pierwotną metodami programowania genetycznego.
+
+\section{Implementacja}
+Do rozwiązania tego zadania posłużyliśmy się językiem Python oraz pakietami \texttt{matplotlib} 
+i~\texttt{numpy}. 
+
+\subsection{Reprezentacja}
+Jako podstawę rozwiązania utworzyliśmy klasę \texttt{Node} --- jej obiekty reprezentują elementy struktury drzewiastej, która z kolei stanowi reprezentację formuły. \texttt{Node} może być wartością stałą, operatorem jedno lub dwuargumentowym.
+
+Poszukujemy wzoru punkcji pierwotnej dla zadanej funkcji podcałkowej. Oznacza to, że dla każdego ewoluowanego wzoru obliczamy pochodną metodą ilorazu różnicowego. Obliczamy te wartości w 21 punktach kontrolnych, co 5\% wartości przedizału. Następnie porównujemy otrzymane wartości z wektorem wartości funkcji podcałkowej. \textit{Bład} danego osobnika określa się na podstawie sumy wartości absolutnych powstałych różnic.
+
+\subsection{Ewolucja}
+Nową populację tworzą pary osobników pochodzące z krzyżowania, które polega na podmianie dwóch, losowo wybranych poddrzew w kopiach rodziców.
+
+W każdej epoce jest pewna szansa, domyślnie $\frac{3}{5}$, że osobnik zostanie wybrany do rozrodu. Największą szansę na przekazanie genów mają osobniki z najmniejszym \textit{błędem}. Jeśli osobnik nie zostanie wybrany do rozrodu, ma pewną szansę, domyślnie $\frac{1}{5}$, na przebycie mutacji, która jednak jest maskowana przed współplemieńcami. Proces wyboru powtarza się, dopóki nowa populacja nie osiągnie rozmiarów starej.
+
+Operator mutacji powoduje losową zmianę w danym osobniku. W $\frac{1}{3}$ przypadków zmianie ulega sama wartość danego węzła, operator lub stała. Następna $\frac{1}{3}$ przypadków to rekurencyjna mutacja jednego z podwęzłów osobnika. Pozostała część to podmiana całej gałęzi na nową, losową. Jeśli dany węzeł nie posiada węzłów potomnych --- jest szansa 50/50 na wybór jednego z pozostałych wariantów.
+
+\section {Wyniki i wnioski}
+Końcowym rezultatem działania algorytmu jest wzór funkcji będącej przybliżeniem funkcji pochodnej funkcji wejściowej. Opcjonalnie rysowany jest wykres ukazujący obie funkcje. W przypadku idealnym czerwona krzywa jest wykresem funkcji pochodnej funkcji zaznaczonej kolorem niebieskim.
+
+Wzór najlepszej funkcji można również obejrzeć podczas procesu ewolucji, co 20 iteracji. Jest prezentowana w notacji polskiej, z nadmiarowymi nawiasami, znanymi m. in. z języka LISP.
+
+Dla porównania otrzymanych przez nas wyników ze stanem faktycznym posługiwaliśmy się Wolframem Alpha\footnote{\url{http://http://www.wolframalpha.com/}}.
+
+Za każdym przebiegiem algorytmu zauważamy, że:
+\begin{itemize}
+  \item 
+  \item 
+  \item w zadaniu tym zmniejszenie pradopodobieństwa rozrodu pomaga zachować różnorodność genetyczną, która z kolei pozwala procesowi ewolucji wyjść z lokalnych minimów błędów. W praktyce przyjęte przez nas wartości domyślne pomagają uzyskać satysfakcjonujące wyniki.
+\end{itemize}
+
+\end{document}
