@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import tokenize as tok
 from StringIO import StringIO
 
+import math
 from consts import *
 from node import Node
 from population import Population

@@ -22,7 +22,7 @@ class ChildException(Exception):
 class Node:
     def __init__(self, value):
         """Operators are things that are not floats. Validated later
-        Two-argument operators: +, -, *, /, //, %, **
+        Two-argument operators: +, -, *, /, **
         One-argument operators: sin, cos, tan, sqrt and so on (math module)
         Actual list:
         """
@@ -169,12 +169,34 @@ class Node:
         else: #change whole node
             tmp = Node.random_node(r.randint(0, 100), 100)
 
+    def __random_subnode(self):
+        """Pick a subnode randomly. Avoid root."""
+        if r.random() < 0.5:
+            pick = self.__first
+        else:
+            pick = self.__second
+
+        while r.random() < 0.667:
+            # go deeper
+            left = (r.random() < 0.5)
+            if (left and pick.__first) or (not left and pick.__second):
+                pick = pick.__first if left else pick.__second
+            else:
+                break
+        return pick
+
+    def copulate(self, partner):
+        node1 = self.__random_subnode()
+        node2 = partner.__random_subnode()
+        node1.swap(node2) # i'm sensing a fuckup. we should clone them, shouldn't we? FIXME
+        return [node1, node2]
+
     @staticmethod
     def random_node(level, max_level=100):
         """Generate random tree"""
         _operators = legal_two
         _leaves = ['x', 'e', 'x', 'pi', 'x', 'x']
-        _leaves.extend(np.arange(-10, 10, 0.5))
+        _leaves.extend(np.arange(-10, 10, 1))
         _functions = legal_one
 
         _oper_probability = Node.oper_probability / (level+1.0); # the deeper, the more leaves
