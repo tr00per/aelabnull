@@ -121,9 +121,18 @@ if __name__ == "__main__":
     target = parse(inputExpr)
     print "Seeking antiderivative for ' %s '!" % target
 
-    pop = Population(n, maxEpoch, x_from, x_to, target)
+    pop = Population(n, x_from, x_to, target)
 
-    if target is not None:
+    if inputExpr != "demo":
+        for epoch in range(maxEpoch):
+            if epoch % 20 == 0:
+                print "Epoch", epoch
+            pop.epoch()
+
+        print "Epoch", maxEpoch
+        print std(pop.POP[0])
+
+    else:
         print "Test case:"
         print target.calc(1)
         print pop.POP[0]
