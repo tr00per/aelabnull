@@ -121,6 +121,10 @@ if __name__ == "__main__":
             drawPlot = True
 
     target = parse(inputExpr)
+    if target is None:
+        print "Parsing error!"
+        sys.exit(1)
+
     print "Seeking antiderivative for ' %s '!" % target
 
     pop = Population(n, x_from, x_to, target)
@@ -129,12 +133,13 @@ if __name__ == "__main__":
         for epoch in range(maxEpoch):
             if epoch % 20 == 0:
                 print "Epoch", epoch
+                print pop.get_best()
             pop.epoch()
 
         print "Epoch", maxEpoch
         print "Best in population:"
         print pop.get_best()
-        print "Whole population:"
+        print "\nWhole population:"
         for i in range(n):
             print pop.POP[i]
 
