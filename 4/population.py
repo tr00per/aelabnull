@@ -12,7 +12,6 @@ class Population:
         self.TO = x_to
         self.STEP = np.abs(x_to - x_from) * 0.05 #21 control points
         self.TARGET = self.__calc_values(target)
-        print self.TARGET
         self.N = n
         self.POP = [self.random_individual() for i in range(n)]
 
@@ -36,7 +35,7 @@ class Population:
 
     def epoch(self):
         # some parameters:
-        p_crossing = 0.7
+        p_crossing = 0.6
         p_mutation = 0.2
 
         newPop = []
@@ -51,17 +50,17 @@ class Population:
         idx = 0
         while len(newPop) < self.N:
             if r.random() < p_crossing:
-                parents.append(self.POP[best.pop(idx)])
-                idx -= 1 # will increase back to current value...
+                parents.append(self.POP[best[idx]])
                 if len(parents) == 2:
                     # BREED!
                     children = parents[0].copulate(parents[1])
                     newPop += children
                     parents = []
-            else:
-                # maybe mutate if not breeding?
-                if r.random() < p_mutation:
+                    idx = -1 #from the beginning
+
+            elif r.random() < p_mutation: # maybe mutate if not breeding?
                     self.POP[best[idx]].mutate()
+
             idx += 1
             if idx >= len(best):
                 idx = 0
