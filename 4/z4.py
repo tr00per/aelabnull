@@ -4,7 +4,6 @@
 import sys
 import getopt as go
 
-import matplotlib.pyplot as plt
 import tokenize as tok
 from StringIO import StringIO
 
@@ -99,10 +98,11 @@ if __name__ == "__main__":
     inputExpr = "demo"
     x_from = -2.0
     x_to = 2.0
-    n = 20
-    maxEpoch = 100
+    n = 30
+    maxEpoch = 200
+    drawPlot = False
 
-    opts, args = go.getopt(sys.argv[1:], "i:f:t:n:n:o:")
+    opts, args = go.getopt(sys.argv[1:], "i:f:t:n:n:o:d")
     for opt, arg in opts:
         if opt == "-i":
             inputExpr = arg
@@ -117,6 +117,8 @@ if __name__ == "__main__":
         if opt == "-o":
             #default value at the end od node.py
             Node.oper_probability = float(arg)
+        if opt == "-d":
+            drawPlot = True
 
     target = parse(inputExpr)
     print "Seeking antiderivative for ' %s '!" % target
@@ -130,7 +132,11 @@ if __name__ == "__main__":
             pop.epoch()
 
         print "Epoch", maxEpoch
-        print std(pop.POP[0])
+        print "Best in population:"
+        print pop.get_best()
+        print "Whole population:"
+        for i in range(n):
+            print pop.POP[i]
 
     else:
         print "Test case:"
@@ -142,3 +148,6 @@ if __name__ == "__main__":
         print pop.POP[0].calc(1),
         print pop.POP[0].calc(2)
         print target
+
+    if drawPlot:
+        pop.draw()
