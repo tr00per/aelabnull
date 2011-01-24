@@ -63,52 +63,41 @@ class Node:
             if self.__value in legal_two:
                 if self.__second is None:
                     raise ChildException("too few children for operator " + self.__value)
-                try:
-                    left = str(self.__first.calc(x))
-                except ZeroDivisionError:
-                    left = "0.0"
-                else:
-                    if left == "inf" or left == "nan":
-                        left = "np."+left
-                    elif left == "-inf":
-                        left = "-np.inf"
+
+                left = str(self.__first.calc(x))
+                if left == "inf" or left == "nan":
+                    left = "np."+left
+                elif left == "-inf":
+                    left = "-np.inf"
+
+                right = str(self.__second.calc(x))
+                if right == "inf" or right == "nan":
+                    right = "np."+right
+                elif right == "-inf":
+                    right = "-np.inf"
 
                 try:
-                    right = str(self.__second.calc(x))
-                except ZeroDivisionError:
-                    right = "np.inf" #depends on numpy as np module import!
-                else:
-                    if right == "inf" or right == "nan":
-                        right = "np."+right
-                    elif right == "-inf":
-                        right = "-np.inf"
-
-                try:
-                    return str(eval(left + self.__value + right))
+                    return eval(left + self.__value + right)
                 except ArithmeticError:
-                    raise ZeroDivisionError
+                    return np.inf
                 except ValueError:
-                    raise ZeroDivisionError
+                    return np.inf
 
             elif self.__value in legal_one:
                 if self.__second is not None:
                     raise ChildException("too many children for operator " + self.__value)
-                try:
-                    arg = str(self.__first.calc(x))
-                except ZeroDivisionError:
-                    arg = "np.inf" #depends on numpy as np module import!
-                else:
-                    if arg == "inf" or arg == "nan":
-                        arg = "np."+arg
-                    elif arg == "-inf":
-                        arg = "-np.inf"
+                arg = str(self.__first.calc(x))
+                if arg == "inf" or arg == "nan":
+                    arg = "np."+arg
+                elif arg == "-inf":
+                    arg = "-np.inf"
 
                 try:
-                    return str(eval("math." + self.__value + "(" + arg + ")" )) #depends on math module import!
+                    return eval("math." + self.__value + "(" + arg + ")" ) #depends on math module import!
                 except ArithmeticError:
-                    raise ZeroDivisionError
+                    return np.inf
                 except ValueError:
-                    raise ZeroDivisionError
+                    return np.inf
 
             else:
                 raise OperatorException(self.__operator)
@@ -131,9 +120,11 @@ class Node:
     def swap(self, other):
         """Low-level mate.
         Swaps values and children of given nodes."""
-        tmp['val'] = self.__value
-        tmp['first'] = self.__first
-        tmp['sec'] = self.__second
+        tmp = {
+            'val' : self.__value,
+            'first' : self.__first,
+            'sec' : self.__second
+        }
 
         self.__value = other.__value
         self.__first = other.__first
@@ -142,6 +133,14 @@ class Node:
         other.__value = tmp['val']
         other.__first = tmp['first']
         other.__second = tmp['sec']
+
+    def clone(self):
+        sibling = Node(self.__value)
+        if self.__first is not None:
+            sibling.addChild(self.__first.clone())
+        if self.__second is not None:
+            sibling.addChild(self.__second.clone())
+        return sibling
 
     def mutate(self):
         """Modify random thing"""
@@ -186,16 +185,17 @@ class Node:
         return pick
 
     def copulate(self, partner):
-        node1 = self.__random_subnode()
-        node2 = partner.__random_subnode()
-        node1.swap(node2) # i'm sensing a fuckup. we should clone them, shouldn't we? FIXME
+        node1 = self.__random_subnode().clone()
+        node2 = partner.__random_subnode().clone()
+        node1.swap(node2)
         return [node1, node2]
 
     @staticmethod
     def random_node(level, max_level=100):
         """Generate random tree"""
         _operators = legal_two
-        _leaves = ['x', 'e', 'x', 'pi', 'x', 'x']
+        _leaves = ['x', 'e',  'pi']
+        _leaves.extend(['x'] * 10) #just to make sure it get picked
         _leaves.extend(np.arange(-10, 10, 1))
         _functions = legal_one
 

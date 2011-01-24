@@ -2,10 +2,10 @@
 
 from node import Node
 import numpy as np
+import random as r
 
 class Population:
-    def __init__(self, n, maxEpoch, x_from, x_to, target):
-        self.MAXEPOCH = maxEpoch
+    def __init__(self, n, x_from, x_to, target):
         self.FROM = x_from
         self.TO = x_to
         self.STEP = np.abs(x_to - x_from) * 0.05 #21 control points
@@ -13,31 +13,30 @@ class Population:
         self.N = n
         self.POP = [self.random_individual() for i in range(n)]
 
-    def __calc_values(self, specimen):
+    def __calc_values(self, specimen,  delta=0.0):
         ret = []
         for x in np.arange(self.FROM, self.TO + self.STEP, self.STEP):
-            try:
-                ret.append(specimen.calc(x))
-            except ZeroDivisionError:
-                ret.append(np.inf)
-        return np.array(ret)
+            ret.append(specimen.calc(x+delta))
+        ret = np.array(ret)
+        print ret.shape
+        print len(ret)
+        print ret
+        return ret
 
     def __calc_diffs(self):
-        #FIXME calc differentials
+        """Calc differentials"""
         delta = 0.001
         dx = 2 * delta
         diffs = []
         for specimen in self.POP:
-            values = []
-            for x in np.arange(self.FROM, self.TO + self.STEP, self.STEP):
-                dy = specimen.calc(x + delta) - speciment.calc(x - delta)
-                #dx = 2 * delta
-                # i feel a strange urge to use numpy somehwere here
-                values.append( dy/dx )
+            values = self.__calc_values(specimen,  delta)
+            values -= self.__calc_values(specimen,  -delta)
+            values /= dx
+            #for x in np.arange(self.FROM, self.TO + self.STEP, self.STEP):
+            #    dy = float(specimen.calc(x + delta)) - float(specimen.calc(x - delta))
+            #    values.append( dy/dx )
             diffs.append(values)
         return diffs
-        # oh fck it.
-        # return [ self.__calc_values(specimen) for specimen in self.POP ]
 
     def epoch(self):
         # some parameters:
@@ -45,12 +44,12 @@ class Population:
         p_mutation = 0.1
 
         newPop = []
-        diffs = self.__calc_diffs
+        diffs = self.__calc_diffs()
 
         for i in range(len(diffs)):
-            diffs[i] = np.abs(diffs[i]-self.TARGET).sum()
+            diffs[i] = np.abs(diffs[i] - self.TARGET).sum()
 
-        best = np.array(diffs).argsort()
+        best = np.array(diffs).argsort().tolist()
 
         parents = []
         idx = 0
@@ -68,11 +67,10 @@ class Population:
                 if r.random() < p_mutation:
                     self.POP[best[idx]].mutate()
             idx += 1
-            if idx > len(best):
+            if idx >= len(best):
                 idx = 0
 
         self.POP = newPop
-
 
     def random_individual(self):
         return Node.random_node(0)
