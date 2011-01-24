@@ -13,20 +13,29 @@ class Population:
 
         self.POP = [self.random_individual() for i in range(n)]
 
-    def __calc_values(self, target):
+    def __calc_values(self, specimen):
         ret = []
         for x in np.arange(self.FROM, self.TO+self.STEP, self.STEP):
             try:
-                ret.append(target.calc(x))
+                ret.append(specimen.calc(x))
             except ZeroDivisionError:
                 ret.append(np.inf)
         return np.array(ret)
 
-    def __calc_diffs(self, x):
+    def __calc_diffs(self):
         #FIXME calc differentials
-        ret = []
-        for specimen in self.POP:
-            pass
+        return [ self.__calc_values(specimen) for specimen in self.POP ]
+
+    def epoch(self):
+        newPop = []
+        diffs = self.__calc_diffs
+
+        for i in range(len(diffs)):
+            diffs[i] = np.abs(diffs[i]).sum()
+
+        best = np.array(diffs).argsort()
+
+        #FIXME now what...?
 
     def random_individual(self):
         return Node.random_node(0)
