@@ -217,10 +217,12 @@ class Node:
         return pick
 
     def copulate(self, partner):
-        node1 = self.__random_subnode().clone()
-        node2 = partner.__random_subnode().clone()
+        child1 = self.clone()
+        child2 = partner.clone()
+        node1 = child1.__random_subnode()
+        node2 = child2.__random_subnode()
         node1.swap(node2)
-        return [node1, node2]
+        return [child1, child2]
 
     @staticmethod
     def random_node(level, max_level=50):
