@@ -1,8 +1,7 @@
 % vim:encoding=utf8 ft=tex sts=2 sw=2 et:
-
-\documentclass{classrep2}
 \usepackage[utf8]{inputenc}
 \usepackage{graphicx}
+\documentclass{classrep2}
 
 \studycycle{Informatyka, studia dzienne, mgr jednolite}
 \coursesemester{IX}
@@ -52,9 +51,10 @@ Dla porównania otrzymanych przez nas wyników ze stanem faktycznym posługiwali
 
 Za każdym przebiegiem algorytmu zauważamy, że:
 \begin{itemize}
-  \item 
-  \item 
-  \item w zadaniu tym zmniejszenie pradopodobieństwa rozrodu pomaga zachować różnorodność genetyczną, która z kolei pozwala procesowi ewolucji wyjść z lokalnych minimów błędów. W praktyce przyjęte przez nas wartości domyślne pomagają uzyskać satysfakcjonujące wyniki.
+  \item Podobnie jak w zadaniach prostej maksymalizacji, wraz z rosnącą ilością przebytych iteracji, maleje różnorodność populacji. Osobniki reprezentujące najlepsze dotąd rozwiązanie mają tendencję do przeżywania i namnażania się w niemal niezmienionej postaci w wielu kopiach (po np.~200 iteracjach). Wynika to z zastosowanej modyfikacji algorytmu, w której po wybraniu osobników do krzyżowania, przechodzimy po populacji raz jeszcze od najlepszego algorytmu. Różnorodność w tym wariancie zapewniają niższe wartości prawdopodobieństwa krzyżowania, jakość osobników zaś --- wybór najlepszych z niewielkiej ich liczby. Metoda ta okazuje się bowiem dawać ciekawsze (z punktu widzenia dążenia do rozwiązania, oczywiście) wyniki dla niewielkich populacji (domyślnie mamy 30 osobników).
+  \item Dla niektórych funkcji, zwłaszcza na odpowiednio małym badanym przedziale, algorytm preferuje drzewa reprezentujące tak naprawdę jedynie wartości stałe, w przybliżeniu zgodne z oczekiwanym wynikiem. Zwykle jednak poszerzenie zakresu, na którym wartości są kontrolowane powoduje wymuszenie uwzględnienia wreszcie zmiennej $x$.
+  \item W zadaniu tym zmniejszenie pradopodobieństwa rozrodu pomaga zachować różnorodność genetyczną, która z kolei pozwala procesowi ewolucji wyjść z lokalnych minimów błędów. W praktyce przyjęte przez nas wartości domyślne pomagają uzyskać satysfakcjonujące wyniki.
+  \item Ponieważ w programie w celu ułatwienia implementacji drzew zawierających dowolne funkcje matematyczne, jak i przeróżnych (dowolnych dopuszczalnych) operatorów matematycznych, korzystamy ochoczo ze skryptowości (jako cechy) języka python, a wartości wyrażeń obliczamy przy użyciu funkcji \texttf{eval}, może to tworzyć spory narzut wydajnościowy. Dlatego też taki sposób realizacji powoduje niezbyt szybkie wykonywanie algorytmu dla złożonych działań, dużych populacji czy też rozbudowanych drzew. Pamiętać należy także, że drzewa nie dokonują żadnej optymalizacji (np.~jeśli duża gałąź ewaluuje się zawsze do tej samej wartości), a~wręcz byłoby to niewskazane (z~punktu widzenia potencjalnej mutacji i~krzyżowania).
 \end{itemize}
 
 \end{document}
